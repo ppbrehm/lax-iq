@@ -1,0 +1,409 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1EE51959FFCB4566F0BEC746 /* GameStatsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C12A0CBF63DE0BA93C90270 /* GameStatsScreen.swift */; };
+		1FD1443913A676C312281A78 /* ScheduleScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0278D6DB4B592E54525F1B03 /* ScheduleScreen.swift */; };
+		31DB1D1C4CD026CB56AE8DF8 /* SignupScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A5F404D31730941518B769 /* SignupScreen.swift */; };
+		381E4D90F62072E12D77E83E /* GameHubScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66DF28046F9A069BF69437A6 /* GameHubScreen.swift */; };
+		41A271D4F21E93C2F6D5ADE7 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921228ADCB4A60A1373FCD37 /* SupabaseClient.swift */; };
+		5AA080C927D7EA2835FF6738 /* PlaybookScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0AA90CD6A45470F07AF42E3 /* PlaybookScreen.swift */; };
+		5CC2A9E96A072B80FD197E67 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 820C0429D0E989EDEB6B85EB /* Supabase */; };
+		5ED36246312C54B7B280B228 /* RosterStatsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A226B8AFFD71BCD8B2F2FD8 /* RosterStatsScreen.swift */; };
+		6089AEE16D628AEA82EE5838 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ED5F1A33527346B785E4FCB /* ContentView.swift */; };
+		6E0FC485B4510C0EEC0D6E23 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE278CBCB7A60F094DFDF353 /* AppState.swift */; };
+		764DE31A2DC4FD13B4951493 /* HomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD2DD4746580DBD6C5E1AAFB /* HomeScreen.swift */; };
+		7855BF6DBB147DAF83521438 /* OrientationLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10804254981476DAF03D66B8 /* OrientationLock.swift */; };
+		7CC5DCAE42B24E74DD133178 /* RosterScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE495FC439C5C8C73E4F5144 /* RosterScreen.swift */; };
+		8CEDFD33C67C2BB15B79705F /* WhiteboardScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE1073BAF2CDBB526FC18BD5 /* WhiteboardScreen.swift */; };
+		96FDB968E195CE922A6C5796 /* Routes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3E7EF5BCF53AD5A12EBACD9 /* Routes.swift */; };
+		B9F4F3AABF6C895C88F876DF /* NoTeamScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927F09F5CEF8E0572C3497E7 /* NoTeamScreen.swift */; };
+		C1BC442C13695CBEF71285E9 /* PlayerStatsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1FF61F9B82BD396722A60B /* PlayerStatsScreen.swift */; };
+		C32B1EFAA424352A3BC51D06 /* CSVImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 270FC71BAECB4591FAC5EC2D /* CSVImport.swift */; };
+		D1A3DDE80554BE4F74CC6353 /* LoginScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06805A1FFADA5977FBF229C5 /* LoginScreen.swift */; };
+		D35FD3D426CE83F6E4A0D644 /* TeamManagementScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8708D009C2F31229B7C529A1 /* TeamManagementScreen.swift */; };
+		D7FC26F07AB7FF7830E6FA9C /* OwnerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F651859499D44C129897AC5F /* OwnerScreen.swift */; };
+		DA9BB9FE170F700FAEB65EB6 /* GameHubPickerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DD94CB738E949C61CB8E0E /* GameHubPickerScreen.swift */; };
+		E26555F912A8EC63A818C48D /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625BC1603BFDF2D61812DCBE /* Models.swift */; };
+		E7C0F10BACBB24B453095440 /* LaxIQApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D36CB8FD7D6BA6B1C0406FB /* LaxIQApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0278D6DB4B592E54525F1B03 /* ScheduleScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleScreen.swift; sourceTree = "<group>"; };
+		06805A1FFADA5977FBF229C5 /* LoginScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginScreen.swift; sourceTree = "<group>"; };
+		10804254981476DAF03D66B8 /* OrientationLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationLock.swift; sourceTree = "<group>"; };
+		17DD94CB738E949C61CB8E0E /* GameHubPickerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHubPickerScreen.swift; sourceTree = "<group>"; };
+		270FC71BAECB4591FAC5EC2D /* CSVImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVImport.swift; sourceTree = "<group>"; };
+		5C12A0CBF63DE0BA93C90270 /* GameStatsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStatsScreen.swift; sourceTree = "<group>"; };
+		625BC1603BFDF2D61812DCBE /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		66DF28046F9A069BF69437A6 /* GameHubScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHubScreen.swift; sourceTree = "<group>"; };
+		6D36CB8FD7D6BA6B1C0406FB /* LaxIQApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaxIQApp.swift; sourceTree = "<group>"; };
+		7ED5F1A33527346B785E4FCB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		8708D009C2F31229B7C529A1 /* TeamManagementScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamManagementScreen.swift; sourceTree = "<group>"; };
+		8A226B8AFFD71BCD8B2F2FD8 /* RosterStatsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RosterStatsScreen.swift; sourceTree = "<group>"; };
+		921228ADCB4A60A1373FCD37 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
+		927F09F5CEF8E0572C3497E7 /* NoTeamScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoTeamScreen.swift; sourceTree = "<group>"; };
+		A3E7EF5BCF53AD5A12EBACD9 /* Routes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Routes.swift; sourceTree = "<group>"; };
+		B7A5F404D31730941518B769 /* SignupScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupScreen.swift; sourceTree = "<group>"; };
+		BA601D1C37BFCA77A26C11CB /* LaxIQ.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LaxIQ.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DD2DD4746580DBD6C5E1AAFB /* HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreen.swift; sourceTree = "<group>"; };
+		DE1073BAF2CDBB526FC18BD5 /* WhiteboardScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiteboardScreen.swift; sourceTree = "<group>"; };
+		DE278CBCB7A60F094DFDF353 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		F0AA90CD6A45470F07AF42E3 /* PlaybookScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybookScreen.swift; sourceTree = "<group>"; };
+		F651859499D44C129897AC5F /* OwnerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwnerScreen.swift; sourceTree = "<group>"; };
+		FD1FF61F9B82BD396722A60B /* PlayerStatsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerStatsScreen.swift; sourceTree = "<group>"; };
+		FE495FC439C5C8C73E4F5144 /* RosterScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RosterScreen.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8EDF7F0340FCFAA0A57DF227 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5CC2A9E96A072B80FD197E67 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1AD654F9CDE4E10E57023F7F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BA601D1C37BFCA77A26C11CB /* LaxIQ.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		65D4B2533BE15D775FE3EC55 = {
+			isa = PBXGroup;
+			children = (
+				B374099C8D31F97AF7BA5C53 /* Sources */,
+				1AD654F9CDE4E10E57023F7F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B374099C8D31F97AF7BA5C53 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				DE278CBCB7A60F094DFDF353 /* AppState.swift */,
+				7ED5F1A33527346B785E4FCB /* ContentView.swift */,
+				270FC71BAECB4591FAC5EC2D /* CSVImport.swift */,
+				17DD94CB738E949C61CB8E0E /* GameHubPickerScreen.swift */,
+				66DF28046F9A069BF69437A6 /* GameHubScreen.swift */,
+				5C12A0CBF63DE0BA93C90270 /* GameStatsScreen.swift */,
+				DD2DD4746580DBD6C5E1AAFB /* HomeScreen.swift */,
+				6D36CB8FD7D6BA6B1C0406FB /* LaxIQApp.swift */,
+				06805A1FFADA5977FBF229C5 /* LoginScreen.swift */,
+				625BC1603BFDF2D61812DCBE /* Models.swift */,
+				927F09F5CEF8E0572C3497E7 /* NoTeamScreen.swift */,
+				10804254981476DAF03D66B8 /* OrientationLock.swift */,
+				F651859499D44C129897AC5F /* OwnerScreen.swift */,
+				F0AA90CD6A45470F07AF42E3 /* PlaybookScreen.swift */,
+				FD1FF61F9B82BD396722A60B /* PlayerStatsScreen.swift */,
+				FE495FC439C5C8C73E4F5144 /* RosterScreen.swift */,
+				8A226B8AFFD71BCD8B2F2FD8 /* RosterStatsScreen.swift */,
+				A3E7EF5BCF53AD5A12EBACD9 /* Routes.swift */,
+				0278D6DB4B592E54525F1B03 /* ScheduleScreen.swift */,
+				B7A5F404D31730941518B769 /* SignupScreen.swift */,
+				921228ADCB4A60A1373FCD37 /* SupabaseClient.swift */,
+				8708D009C2F31229B7C529A1 /* TeamManagementScreen.swift */,
+				DE1073BAF2CDBB526FC18BD5 /* WhiteboardScreen.swift */,
+			);
+			name = Sources;
+			path = LaxIQ/Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5FD9D42C502CA211D4FA9F46 /* LaxIQ */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2E8F27E50D5A9E71B9DEB619 /* Build configuration list for PBXNativeTarget "LaxIQ" */;
+			buildPhases = (
+				ECBD6002C733303132EF4DBF /* Sources */,
+				8EDF7F0340FCFAA0A57DF227 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LaxIQ;
+			packageProductDependencies = (
+				820C0429D0E989EDEB6B85EB /* Supabase */,
+			);
+			productName = LaxIQ;
+			productReference = BA601D1C37BFCA77A26C11CB /* LaxIQ.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6DF131277E2003C0440EA586 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 312EBF305A77EBBF7DC13233 /* Build configuration list for PBXProject "LaxIQ" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 65D4B2533BE15D775FE3EC55;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7BFC7A7EF125EE2FD03F77F1 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 1AD654F9CDE4E10E57023F7F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5FD9D42C502CA211D4FA9F46 /* LaxIQ */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		ECBD6002C733303132EF4DBF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6E0FC485B4510C0EEC0D6E23 /* AppState.swift in Sources */,
+				C32B1EFAA424352A3BC51D06 /* CSVImport.swift in Sources */,
+				6089AEE16D628AEA82EE5838 /* ContentView.swift in Sources */,
+				DA9BB9FE170F700FAEB65EB6 /* GameHubPickerScreen.swift in Sources */,
+				381E4D90F62072E12D77E83E /* GameHubScreen.swift in Sources */,
+				1EE51959FFCB4566F0BEC746 /* GameStatsScreen.swift in Sources */,
+				764DE31A2DC4FD13B4951493 /* HomeScreen.swift in Sources */,
+				E7C0F10BACBB24B453095440 /* LaxIQApp.swift in Sources */,
+				D1A3DDE80554BE4F74CC6353 /* LoginScreen.swift in Sources */,
+				E26555F912A8EC63A818C48D /* Models.swift in Sources */,
+				B9F4F3AABF6C895C88F876DF /* NoTeamScreen.swift in Sources */,
+				7855BF6DBB147DAF83521438 /* OrientationLock.swift in Sources */,
+				D7FC26F07AB7FF7830E6FA9C /* OwnerScreen.swift in Sources */,
+				5AA080C927D7EA2835FF6738 /* PlaybookScreen.swift in Sources */,
+				C1BC442C13695CBEF71285E9 /* PlayerStatsScreen.swift in Sources */,
+				7CC5DCAE42B24E74DD133178 /* RosterScreen.swift in Sources */,
+				5ED36246312C54B7B280B228 /* RosterStatsScreen.swift in Sources */,
+				96FDB968E195CE922A6C5796 /* Routes.swift in Sources */,
+				1FD1443913A676C312281A78 /* ScheduleScreen.swift in Sources */,
+				31DB1D1C4CD026CB56AE8DF8 /* SignupScreen.swift in Sources */,
+				41A271D4F21E93C2F6D5ADE7 /* SupabaseClient.swift in Sources */,
+				D35FD3D426CE83F6E4A0D644 /* TeamManagementScreen.swift in Sources */,
+				8CEDFD33C67C2BB15B79705F /* WhiteboardScreen.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0B86295D3BE7A728403961A9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LaxIQ/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ppbrehm.laxiq;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7096BF3D2A3FFC699AEC7B67 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		A3BB1C7CB4E712159639B610 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C485B7CE7AAEC48C13A9981D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LaxIQ/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ppbrehm.laxiq;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2E8F27E50D5A9E71B9DEB619 /* Build configuration list for PBXNativeTarget "LaxIQ" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0B86295D3BE7A728403961A9 /* Debug */,
+				C485B7CE7AAEC48C13A9981D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		312EBF305A77EBBF7DC13233 /* Build configuration list for PBXProject "LaxIQ" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A3BB1C7CB4E712159639B610 /* Debug */,
+				7096BF3D2A3FFC699AEC7B67 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		7BFC7A7EF125EE2FD03F77F1 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		820C0429D0E989EDEB6B85EB /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7BFC7A7EF125EE2FD03F77F1 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 6DF131277E2003C0440EA586 /* Project object */;
+}

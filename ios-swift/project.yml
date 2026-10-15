@@ -1,0 +1,29 @@
+name: LaxIQ
+options:
+  bundleIdPrefix: com.ppbrehm
+  deploymentTarget:
+    iOS: "17.0"
+
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: 2.0.0
+
+targets:
+  LaxIQ:
+    type: application
+    platform: iOS
+    sources:
+      - path: LaxIQ/Sources
+    resources:
+      - path: LaxIQ/Resources
+    dependencies:
+      - package: Supabase
+        product: Supabase
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ppbrehm.laxiq
+        INFOPLIST_FILE: LaxIQ/Resources/Info.plist
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: NO
