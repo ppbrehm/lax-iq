@@ -27,14 +27,25 @@ struct GameHubScreen: View {
     // pushing a new stack entry — so no matter how many times the coach flips
     // between Game Hub and Stat Input, back always pops directly to the picker.
     var onSwitchToStatsInput: () -> Void
+    // Pops all the way back to Home (past the picker) once the coach confirms they
+    // want to leave — this is the screen's own idea of "exiting Game Hub," not just
+    // popping one level.
+    var onExitToHome: () -> Void
 
     @State private var selectedPlay: Play?
     @State private var showWhiteboardConfirm = false
     @State private var navigateToWhiteboard = false
     @State private var showPlaybook = false
+    @State private var showExitConfirm = false
+    // The score card's content (fonts/padding) never changes, so its rendered
+    // height is effectively fixed — the Playbook button is locked to the same
+    // value instead of measuring it, to keep the two aligned at the top.
+    private let scoreCardHeight: CGFloat = 84
 
     private let columnSpacing: CGFloat = 12
-    private let contentWidthFraction: CGFloat = 2.0 / 3.0
+    // Width:height of the full field — matches MiniFieldView's own ratio, since the
+    // sidebar width is derived from it (see `content`).
+    private let fieldAspectRatio: CGFloat = 60.0 / 110.0
     private let nameWidth: CGFloat = 84
     private let totalTimeWidth: CGFloat = 42
     private let sinceTimeWidth: CGFloat = 42
@@ -52,15 +63,41 @@ struct GameHubScreen: View {
                 ProgressView()
             }
         }
+        .navigationTitle("Game Hub")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    showExitConfirm = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("Back")
+                    }
+                }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Go To Stats Input", action: onSwitchToStatsInput)
             }
         }
+        .overlay {
+            if showExitConfirm {
+                exitConfirmDialog
+            }
+        }
         .lockLandscape()
         .navigationDestination(isPresented: $navigateToWhiteboard) {
-            WhiteboardScreen(initialPlayId: selectedPlay?.id)
+            WhiteboardScreen(
+                initialPlayId: selectedPlay?.id,
+                onBack: { pieces, actions in
+                    selectedPlay = Play(
+                        id: selectedPlay?.id ?? "", name: selectedPlay?.name ?? "On the Board",
+                        field_type: "full", pieces: pieces, actions: actions, formation: selectedPlay?.formation
+                    )
+                },
+                quickSaveContext: game.map { (opponent: $0.opponent, date: shortDate($0.date)) }
+            )
         }
         .overlay {
             if showPlaybook {
@@ -88,9 +125,15 @@ struct GameHubScreen: View {
         let availableWidth = totalSize.width - horizontalPadding
         let availableHeight = totalSize.height - verticalPadding
 
-        let contentWidth = availableWidth * contentWidthFraction
+        // Sidebar width is derived from the field's own aspect ratio rather than a
+        // fixed fraction of the screen — sized so the field, once it fills the space
+        // below the Playbook button, comes out exactly as tall as that space (no
+        // gap above it), which puts its top edge flush with the first KPI row.
+        let sidebarInnerSpacing: CGFloat = 8
+        let fieldContainerHeight = availableHeight - scoreCardHeight - sidebarInnerSpacing
+        let sidebarWidth = fieldContainerHeight * fieldAspectRatio
+        let contentWidth = availableWidth - sidebarWidth - columnSpacing
         let columnWidth = (contentWidth - columnSpacing) / 2
-        let sidebarWidth = availableWidth - contentWidth - columnSpacing
 
         return ZStack {
             HStack(alignment: .top, spacing: columnSpacing) {
@@ -154,9 +197,59 @@ struct GameHubScreen: View {
         .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
     }
 
+    // A plain centered card instead of the system confirmationDialog, which on
+    // iPad renders as an arrowed popover anchored to the Back button rather than
+    // staying put in the middle of the screen.
+    private var exitConfirmDialog: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture { showExitConfirm = false }
+
+            VStack(spacing: 16) {
+                Text("Exit Game Hub?")
+                    .font(.system(size: 18, weight: .bold))
+                    .multilineTextAlignment(.center)
+
+                VStack(spacing: 10) {
+                    Button {
+                        showExitConfirm = false
+                        onExitToHome()
+                    } label: {
+                        Text("Exit")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.red)
+                            .cornerRadius(10)
+                    }
+
+                    Button {
+                        showExitConfirm = false
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(white: 0.93))
+                            .cornerRadius(10)
+                    }
+                }
+            }
+            .padding(24)
+            .frame(width: 300)
+            .background(Color(white: 0.98))
+            .cornerRadius(20)
+            .shadow(color: .black.opacity(0.3), radius: 20)
+        }
+    }
+
     private func playCallsSidebar(width: CGFloat, height: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             openPlaybookButton
+                .frame(height: scoreCardHeight)
 
             MiniFieldView(pieces: selectedPlay?.pieces ?? [], actions: selectedPlay?.actions ?? [])
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -171,11 +264,10 @@ struct GameHubScreen: View {
             showPlaybook = true
         } label: {
             Text("Playbook")
-                .font(.system(size: 12, weight: .semibold))
-                .frame(maxWidth: .infinity)
+                .font(.system(size: 28, weight: .bold))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .foregroundColor(.primary)
                 .padding(.horizontal, 10)
-                .padding(.vertical, 8)
                 .background(Color(white: 0.93))
                 .cornerRadius(10)
         }
@@ -401,8 +493,8 @@ struct GameHubScreen: View {
                 .font(.system(size: 18, weight: .semibold, design: .monospaced))
                 .foregroundColor(.secondary)
         }
-        .frame(width: width, alignment: .center)
-        .padding(10)
+        .padding(.horizontal, 10)
+        .frame(width: width, height: scoreCardHeight, alignment: .center)
         .background(Color(white: 0.96))
         .cornerRadius(12)
     }
@@ -549,11 +641,13 @@ private struct MiniFieldView: View {
             .background(Color(red: 0.02, green: 0.47, blue: 0.34))
             .cornerRadius(12)
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(white: 0.98), lineWidth: 2))
-            .frame(width: geo.size.width, height: geo.size.height)
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .bottom)
         }
     }
 
     private func actionPath(_ action: PlayAction, size: CGSize) -> some View {
+        let isOpponent = (action.team ?? "us") == "opponent"
+        let color: Color = isOpponent ? .black : Color.white.opacity(0.85)
         let absPoints = action.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
         return ZStack {
             Path { path in
@@ -561,14 +655,14 @@ private struct MiniFieldView: View {
                 path.move(to: first)
                 for pt in absPoints.dropFirst() { path.addLine(to: pt) }
             }
-            .stroke(Color.black, style: StrokeStyle(lineWidth: 3, dash: action.type == "pass" ? [8, 6] : []))
+            .stroke(color, style: StrokeStyle(lineWidth: 3, dash: action.type == "pass" ? [8, 6] : []))
 
             if let last = absPoints.last, let secondLast = absPoints.dropLast().last {
                 let angle = atan2(last.y - secondLast.y, last.x - secondLast.x)
                 if action.type == "cut" || action.type == "pass" {
-                    ArrowHead(angle: angle).fill(Color.black).frame(width: 16, height: 16).position(last)
+                    ArrowHead(angle: angle).fill(color).frame(width: 16, height: 16).position(last)
                 } else if action.type == "pick" {
-                    Rectangle().fill(Color.black)
+                    Rectangle().fill(color)
                         .frame(width: 18, height: 3)
                         .rotationEffect(.radians(angle + .pi / 2))
                         .position(last)
@@ -578,10 +672,10 @@ private struct MiniFieldView: View {
     }
 
     private func pieceView(_ piece: PlayPiece, size: CGSize) -> some View {
-        let label = piece.playerType ?? (piece.side == "offense" ? "X" : "O")
-        let isDefense = piece.side == "defense"
-        let fillColor: Color = isDefense ? .black : Color.white.opacity(0.85)
-        let textColor: Color = isDefense ? .white : (piece.side == "offense" ? Color(red: 0.07, green: 0.09, blue: 0.15) : Color(red: 0.98, green: 0.75, blue: 0.14))
+        let isOpponent = (piece.team ?? "us") == "opponent"
+        let label = piece.playerType ?? (isOpponent ? "O" : "X")
+        let fillColor: Color = isOpponent ? .black : Color.white.opacity(0.85)
+        let textColor: Color = isOpponent ? .white : Color(red: 0.07, green: 0.09, blue: 0.15)
 
         return Circle()
             .fill(fillColor)

@@ -6,6 +6,11 @@ struct HomeScreen: View {
     let userId: String
     var onSignOut: () -> Void
 
+    // Explicit path (rather than relying on NavigationLink/navigationDestination's
+    // implicit stack) so Game Hub's "exit" confirmation can pop all the way back to
+    // Home from several levels deep (past the game picker) in one step.
+    @State private var path = NavigationPath()
+
     // Sized off the third-width tile (the tightest fit, from the Schedule/Roster/
     // Settings row), so every tile's label uses the same font size and it scales
     // with screen size (iPhone vs iPad).
@@ -18,7 +23,7 @@ struct HomeScreen: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(spacing: 20) {
                     Text("LaxIQ").font(.system(size: 32, weight: .heavy))
@@ -81,7 +86,7 @@ struct HomeScreen: View {
         case "roster":
             RosterStatsScreen()
         case "gameHub":
-            GameHubPickerScreen()
+            GameHubPickerScreen(onExitToHome: { path = NavigationPath() })
         case "schedule":
             ScheduleScreen(isReadOnly: true)
         case "teamManagement":

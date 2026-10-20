@@ -5,6 +5,9 @@ import SwiftUI
 // input screen, depending on the signed-in user's role.
 struct GameHubPickerScreen: View {
     @EnvironmentObject var appState: AppState
+    // Lets Game Hub's own back button bypass this picker (and the Home screen's
+    // whole nav stack in between) and pop straight back to Home in one step.
+    var onExitToHome: () -> Void
 
     // Game awaiting the "Start Game?" confirmation (shown here, on the picker,
     // before ever pushing into Game Hub / Stat Input), and the Bool-driven
@@ -14,6 +17,12 @@ struct GameHubPickerScreen: View {
     @State private var pendingGame: Game?
     @State private var confirmedGameId: String?
     @State private var navigate = false
+    // Only one game can be live at once — if the coach taps a different game while
+    // another is still in_progress, this holds that live game (for the Finish/Reset
+    // prompt) and the game they were actually trying to select, resumed once
+    // they've resolved the conflict one way or the other.
+    @State private var conflictingLiveGame: Game?
+    @State private var pendingSelection: Game?
     // Overrides the default role-based screen choice below when the coach taps
     // "Go To Stats Input" / "Go to Game Hub" — switching flips this flag instead of
     // pushing a new stack entry, so back always pops directly to this picker in one
@@ -40,12 +49,7 @@ struct GameHubPickerScreen: View {
             } else {
                 List(sortedGames) { game in
                     Button {
-                        if game.status == "scheduled" {
-                            pendingGame = game
-                        } else {
-                            confirmedGameId = game.id
-                            navigate = true
-                        }
+                        selectGame(game)
                     } label: {
                         GameRowView(game: game)
                     }
@@ -68,7 +72,10 @@ struct GameHubPickerScreen: View {
                         onSwitchToGameHub: { forcedScreen = .gameHub }
                     )
                 } else {
-                    GameHubScreen(gameId: confirmedGameId, onSwitchToStatsInput: { forcedScreen = .statsInput })
+                    GameHubScreen(
+                        gameId: confirmedGameId, onSwitchToStatsInput: { forcedScreen = .statsInput },
+                        onExitToHome: onExitToHome
+                    )
                 }
             }
         }
@@ -92,7 +99,30 @@ struct GameHubPickerScreen: View {
                 startGameConfirm(pendingGame)
             }
         }
+        .overlay {
+            if let conflictingLiveGame {
+                liveGameConflictPrompt(conflictingLiveGame)
+            }
+        }
         .task { await appState.loadGames() }
+    }
+
+    private func selectGame(_ game: Game) {
+        if let live = appState.games.first(where: { $0.status == "in_progress" && $0.id != game.id }) {
+            conflictingLiveGame = live
+            pendingSelection = game
+        } else {
+            proceedWithSelection(game)
+        }
+    }
+
+    private func proceedWithSelection(_ game: Game) {
+        if game.status == "scheduled" {
+            pendingGame = game
+        } else {
+            confirmedGameId = game.id
+            navigate = true
+        }
     }
 
     // A plain centered card instead of the system confirmationDialog, which on
@@ -150,6 +180,87 @@ struct GameHubPickerScreen: View {
             .cornerRadius(20)
             .shadow(color: .black.opacity(0.3), radius: 20)
         }
+    }
+
+    // Only one game can be live at a time, so picking a different game while one is
+    // still in_progress blocks here until the coach finishes or resets it.
+    private func liveGameConflictPrompt(_ live: Game) -> some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture { cancelLiveGameConflict() }
+
+            VStack(spacing: 16) {
+                Text("Game vs \(live.opponent) is still live")
+                    .font(.system(size: 18, weight: .bold))
+                    .multilineTextAlignment(.center)
+                Text("Only one game can be live at a time. Finish it or reset it back to scheduled before starting another.")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+
+                VStack(spacing: 10) {
+                    Button {
+                        Task {
+                            await appState.finishGame(gameId: live.id)
+                            resumePendingSelection()
+                        }
+                    } label: {
+                        Text("Finish Game")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.green)
+                            .cornerRadius(10)
+                    }
+
+                    Button {
+                        Task {
+                            await appState.resetGameToScheduled(gameId: live.id)
+                            resumePendingSelection()
+                        }
+                    } label: {
+                        Text("Reset to Scheduled")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.orange)
+                            .cornerRadius(10)
+                    }
+
+                    Button {
+                        cancelLiveGameConflict()
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(white: 0.93))
+                            .cornerRadius(10)
+                    }
+                }
+            }
+            .padding(24)
+            .frame(width: 340)
+            .background(Color(white: 0.98))
+            .cornerRadius(20)
+            .shadow(color: .black.opacity(0.3), radius: 20)
+        }
+    }
+
+    private func cancelLiveGameConflict() {
+        conflictingLiveGame = nil
+        pendingSelection = nil
+    }
+
+    private func resumePendingSelection() {
+        conflictingLiveGame = nil
+        guard let pendingSelection else { return }
+        self.pendingSelection = nil
+        proceedWithSelection(pendingSelection)
     }
 }
 

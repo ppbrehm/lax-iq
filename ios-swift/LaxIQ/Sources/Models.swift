@@ -261,6 +261,12 @@ struct PlayPiece: Codable, Identifiable, Equatable {
     var y: Double
     var side: String
     var playerType: String?
+    // "us" or "opponent" — drives color, independent of `side`/position, so a
+    // defensive or faceoff play can color-code by team even when both teams have
+    // the same position on the field (e.g. two FOs). Optional/nil (rather than a
+    // required field defaulting to "us") so plays saved before this existed still
+    // decode fine and just render as "us".
+    var team: String?
 }
 
 struct PlayPoint: Codable, Equatable {
@@ -272,6 +278,9 @@ struct PlayAction: Codable, Identifiable, Equatable {
     let id: String
     var type: String
     var points: [PlayPoint]
+    // Same "us"/"opponent" color-coding as PlayPiece.team — optional/nil so plays
+    // saved before this existed still decode fine and render as "us" (black).
+    var team: String?
 }
 
 struct Play: Codable, Identifiable {

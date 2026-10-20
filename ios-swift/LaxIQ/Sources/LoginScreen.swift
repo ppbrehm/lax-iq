@@ -75,6 +75,7 @@ struct LoginScreen: View {
             .frame(maxWidth: 400)
             .padding(.horizontal, 24)
         }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     private func handleLogin() async {

@@ -11,8 +11,21 @@ struct PlaybookScreen: View {
     @State private var pageIndex = 0
 
     private var pages: [(formation: String, plays: [Play])] {
+        // Preset sets first, in their fixed order, then any ad-hoc formations (e.g.
+        // the "Opponent Date" buckets the Game Hub's quick-save creates mid-game) —
+        // those aren't in playbookFormationOrder at all, so they're collected here
+        // instead. savedPlays is already newest-first (see AppState.loadPlays), so
+        // first-seen order here means most recently created ad-hoc set first.
+        var orderedFormations = playbookFormationOrder
+        var seenFormations = Set(playbookFormationOrder)
+        for play in appState.savedPlays {
+            guard let formation = play.formation, !seenFormations.contains(formation) else { continue }
+            seenFormations.insert(formation)
+            orderedFormations.append(formation)
+        }
+
         var result: [(formation: String, plays: [Play])] = []
-        for formation in playbookFormationOrder {
+        for formation in orderedFormations {
             let plays = appState.savedPlays.filter { $0.formation == formation }
             guard !plays.isEmpty else { continue }
             let chunks = stride(from: 0, to: plays.count, by: 4).map { Array(plays[$0..<min($0 + 4, plays.count)]) }
@@ -179,7 +192,9 @@ struct PlaybookScreen: View {
     }
 }
 
-private let playbookFormationOrder = ["1-4-1", "2-2-2", "2-3-1", "1-3-2", "3-3", "Open Set", "2-1-3"]
+// "Custom" is a Playbook-only bucket (plays that don't fit a named set) — it's not
+// one of WhiteboardScreen's placeable formations, so it only ever appears here.
+private let playbookFormationOrder = ["1-4-1", "2-2-2", "2-3-1", "1-3-2", "3-3", "Open Set", "2-1-3", "Custom"]
 
 private struct PlaybookThumbnail: View {
     let play: Play
@@ -225,6 +240,8 @@ private struct PlaybookThumbnail: View {
     }
 
     private func actionPath(_ action: PlayAction, size: CGSize) -> some View {
+        let isOpponent = (action.team ?? "us") == "opponent"
+        let color: Color = isOpponent ? .black : Color.white.opacity(0.85)
         let absPoints = action.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
         return ZStack {
             Path { path in
@@ -232,14 +249,14 @@ private struct PlaybookThumbnail: View {
                 path.move(to: first)
                 for pt in absPoints.dropFirst() { path.addLine(to: pt) }
             }
-            .stroke(Color.black, style: StrokeStyle(lineWidth: 2, dash: action.type == "pass" ? [6, 5] : []))
+            .stroke(color, style: StrokeStyle(lineWidth: 2, dash: action.type == "pass" ? [6, 5] : []))
 
             if let last = absPoints.last, let secondLast = absPoints.dropLast().last {
                 let angle = atan2(last.y - secondLast.y, last.x - secondLast.x)
                 if action.type == "cut" || action.type == "pass" {
-                    ArrowHead(angle: angle).fill(Color.black).frame(width: 12, height: 12).position(last)
+                    ArrowHead(angle: angle).fill(color).frame(width: 12, height: 12).position(last)
                 } else if action.type == "pick" {
-                    Rectangle().fill(Color.black)
+                    Rectangle().fill(color)
                         .frame(width: 14, height: 2)
                         .rotationEffect(.radians(angle + .pi / 2))
                         .position(last)
@@ -249,10 +266,10 @@ private struct PlaybookThumbnail: View {
     }
 
     private func pieceView(_ piece: PlayPiece, size: CGSize) -> some View {
-        let label = piece.playerType ?? (piece.side == "offense" ? "X" : "O")
-        let isDefense = piece.side == "defense"
-        let fillColor: Color = isDefense ? .black : Color.white.opacity(0.85)
-        let textColor: Color = isDefense ? .white : (piece.side == "offense" ? Color(red: 0.07, green: 0.09, blue: 0.15) : Color(red: 0.98, green: 0.75, blue: 0.14))
+        let isOpponent = (piece.team ?? "us") == "opponent"
+        let label = piece.playerType ?? (isOpponent ? "O" : "X")
+        let fillColor: Color = isOpponent ? .black : Color.white.opacity(0.85)
+        let textColor: Color = isOpponent ? .white : Color(red: 0.07, green: 0.09, blue: 0.15)
 
         return Circle()
             .fill(fillColor)

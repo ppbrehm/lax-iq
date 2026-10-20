@@ -31,11 +31,16 @@ struct GameStatsScreen: View {
         return AnyView(
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(isHome ? game.opponent : "@ \(game.opponent)")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(isHome ? .blue : .orange)
-                        Text(shortDate(game.date)).font(.system(size: 14)).foregroundColor(.gray)
+                    // For live stat input, the opponent/date move up into the nav bar
+                    // itself (see the .principal toolbar item below) so this block
+                    // doesn't eat space the stat table could use instead.
+                    if readOnly {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(isHome ? game.opponent : "@ \(game.opponent)")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(isHome ? .blue : .orange)
+                            Text(shortDate(game.date)).font(.system(size: 14)).foregroundColor(.gray)
+                        }
                     }
 
                     // Live stat input is purely about collecting stats — skip the team
@@ -70,9 +75,24 @@ struct GameStatsScreen: View {
                 }
                 .padding()
             }
-            .navigationTitle(backLabel.replacingOccurrences(of: "← Back to ", with: ""))
+            .navigationTitle(readOnly ? backLabel.replacingOccurrences(of: "← Back to ", with: "") : "Stats Input")
+            .navigationBarTitleDisplayMode(.inline)
             .lockLandscape(if: !readOnly)
+            // Reached from the live Game Hub picker flow (not the Schedule, and not
+            // a finished game's read-only view) — Back goes to the Game Hub field
+            // view instead of popping out of the Game Hub flow entirely.
+            .navigationBarBackButtonHidden(onSwitchToGameHub != nil)
             .toolbar {
+                if let onSwitchToGameHub {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: onSwitchToGameHub) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left")
+                                Text("Back")
+                            }
+                        }
+                    }
+                }
                 // Only offer a path into Game Hub when we arrived from Game Hub /
                 // Stat Input in the first place — not from the Schedule, and not
                 // for a finished game (no live dashboard to switch to either way).
@@ -143,7 +163,17 @@ struct GameStatsScreen: View {
     }
 
     private func timerSection(game: Game) -> some View {
-        HStack(spacing: 16) {
+        let isHome = game.location == "home"
+
+        return HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(isHome ? game.opponent : "@ \(game.opponent)")
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundColor(isHome ? .blue : .orange)
+                Text(shortDate(game.date)).font(.system(size: 17)).foregroundColor(.gray)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
             HStack(spacing: 6) {
                 ForEach(1...4, id: \.self) { quarter in
                     Button("Q\(quarter)") { selectQuarter(quarter, game: game) }
@@ -156,6 +186,7 @@ struct GameStatsScreen: View {
                     .tint(game.quarter >= 5 ? .blue : .gray)
                     .frame(width: 50)
             }
+            .frame(maxWidth: .infinity)
 
             VStack(spacing: 10) {
                 Text(formatTimeLeft(elapsedSec: game.timerElapsedSec))

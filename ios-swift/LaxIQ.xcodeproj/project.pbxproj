@@ -50,7 +50,7 @@
 		927F09F5CEF8E0572C3497E7 /* NoTeamScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoTeamScreen.swift; sourceTree = "<group>"; };
 		A3E7EF5BCF53AD5A12EBACD9 /* Routes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Routes.swift; sourceTree = "<group>"; };
 		B7A5F404D31730941518B769 /* SignupScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupScreen.swift; sourceTree = "<group>"; };
-		BA601D1C37BFCA77A26C11CB /* LaxIQ.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LaxIQ.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BA601D1C37BFCA77A26C11CB /* LaxIQ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LaxIQ.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD2DD4746580DBD6C5E1AAFB /* HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreen.swift; sourceTree = "<group>"; };
 		DE1073BAF2CDBB526FC18BD5 /* WhiteboardScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiteboardScreen.swift; sourceTree = "<group>"; };
 		DE278CBCB7A60F094DFDF353 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
@@ -149,8 +149,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-				};
 			};
 			buildConfigurationList = 312EBF305A77EBBF7DC13233 /* Build configuration list for PBXProject "LaxIQ" */;
 			developmentRegion = en;
@@ -213,6 +211,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 6A5PSG44Q4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LaxIQ/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -350,6 +349,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 6A5PSG44Q4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LaxIQ/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

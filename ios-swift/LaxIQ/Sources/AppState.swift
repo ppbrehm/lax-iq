@@ -472,6 +472,53 @@ final class AppState: ObservableObject {
         await updateGameInDb(gameId: gameId, updates: ["status": .string("in_progress")])
     }
 
+    // Manually closes out a live game without playing the clock to 0:00 — used when
+    // the coach switches to a different game while this one's still in_progress,
+    // since only one game can be live at a time.
+    func finishGame(gameId: String) async {
+        guard let idx = games.firstIndex(where: { $0.id == gameId }) else { return }
+        games[idx].status = "completed"
+        games[idx].timerRunning = false
+        await updateGameInDb(gameId: gameId, updates: ["status": .string("completed"), "timer_running": .bool(false)])
+    }
+
+    // Reverts an in_progress game back to scheduled (e.g. it was started by mistake)
+    // so it can be properly started again later — used in the same "only one game
+    // can be live" conflict as finishGame above. This is a safety net for an edge
+    // case that shouldn't come up in normal use (coaches aren't expected to open a
+    // second game while one's live), so it fully wipes the game back to a blank
+    // slate — stats, score (derived from stats), lineup, and clock — rather than
+    // leaving partial data that could be mistaken for a fresh start.
+    func resetGameToScheduled(gameId: String) async {
+        guard let idx = games.firstIndex(where: { $0.id == gameId }) else { return }
+        games[idx].status = "scheduled"
+        games[idx].timerRunning = false
+        games[idx].timerElapsedSec = 0
+        games[idx].quarter = 1
+        games[idx].playerTimesSec = games[idx].players.map { _ in 0 }
+        games[idx].playerStintSec = games[idx].players.map { _ in 0 }
+        games[idx].playerIn = games[idx].players.map { _ in false }
+        games[idx].stats = games[idx].players.map { _ in Array(repeating: 0, count: statHeaders.count) }
+
+        await updateGameInDb(gameId: gameId, updates: [
+            "status": .string("scheduled"), "timer_running": .bool(false),
+            "timer_elapsed_sec": .double(0), "quarter": .double(1),
+        ])
+
+        let zeroedPlayerUpdates: [String: AnyJSON] = [
+            "player_time_sec": .double(0), "current_stint_sec": .double(0), "player_in": .bool(false),
+            "shots": .double(0), "shots_on_goal": .double(0), "goals": .double(0),
+            "assists": .double(0), "turnovers": .double(0),
+            "faceoff_attempts": .double(0), "faceoff_wins": .double(0),
+            "ground_balls": .double(0), "caused_turnovers": .double(0),
+            "shots_against": .double(0), "shots_against_on_goal": .double(0),
+            "goals_against": .double(0), "saves": .double(0),
+        ]
+        for player in games[idx].players {
+            await updateGamePlayerInDb(playerId: player.id, updates: zeroedPlayerUpdates)
+        }
+    }
+
     func toggleGameTimer(gameId: String) async {
         guard let idx = games.firstIndex(where: { $0.id == gameId }) else { return }
         games[idx].timerRunning.toggle()

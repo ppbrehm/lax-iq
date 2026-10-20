@@ -94,6 +94,7 @@ struct SignupScreen: View {
             .padding(.vertical, 40)
         }
         .background(Color(white: 0.95))
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     @ViewBuilder

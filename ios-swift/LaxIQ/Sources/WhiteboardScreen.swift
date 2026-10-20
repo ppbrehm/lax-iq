@@ -50,6 +50,18 @@ private let formations: [String: [(x: Double, y: Double, type: String)]] = [
     ],
 ]
 
+// Unlike the formations above (one team at a time, picked via the Team control),
+// a faceoff set is inherently both teams at once — each side brings a Face Off
+// man at the X plus an Offensive Middie and Long Stick Middie. Players other than
+// the X must stay behind the wing line (FieldLinesView's `boxLineFromSideline`,
+// 10yd from each sideline) until the whistle, so they sit just outside it —
+// x=9/60 and 51/60 — rather than on it. Authored the same way as the other
+// formations, as a fraction of the full field (60yd wide, 110yd long).
+private let faceoffFormation: [(x: Double, y: Double, type: String, team: String)] = [
+    (0.5, 0.505, "FO", "us"), (0.15, 0.5455, "OM", "us"), (0.85, 0.5455, "LS", "us"),
+    (0.5, 0.495, "FO", "opponent"), (0.15, 0.4545, "OM", "opponent"), (0.85, 0.4545, "LS", "opponent"),
+]
+
 private func newId() -> String { UUID().uuidString }
 
 private struct PositionOption {
@@ -73,6 +85,22 @@ struct WhiteboardScreen: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     var initialPlayId: String?
+    // Reports whatever's currently on the board back to the caller when this screen
+    // goes away — lets Game Hub show a hand-drawn play on its mini field without
+    // requiring the coach to save it to the Playbook first.
+    var onBack: (([PlayPiece], [PlayAction]) -> Void)? = nil
+    // Set only when reached from an in-progress game's Game Hub. Presence of this
+    // drives the lightweight Discard/Save prompt on back — a quick in-game sketch
+    // shouldn't require naming a play or picking a formation, so a Save here files
+    // it under an auto-generated "Opponent Date" formation instead.
+    var quickSaveContext: (opponent: String, date: String)? = nil
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var showQuickSaveDialog = false
+    // Guards against onDisappear re-reporting (and the Discard/Save dialog not
+    // being shown at all) if the view goes away some way other than our own Back
+    // button — e.g. the system's interactive swipe-back gesture.
+    @State private var handledExit = false
 
     @State private var fieldType = "full"
     // Nil until the coach picks something from the Position or Action dropdown —
@@ -82,6 +110,10 @@ struct WhiteboardScreen: View {
     @State private var actions: [PlayAction] = []
     @State private var drawingAction: PlayAction?
     @State private var selectedFormation: String?
+    // Which team a newly-placed piece belongs to — independent of Position, so
+    // color can reflect team rather than offense/defense (needed for plays where
+    // both teams share a position, like two face-off players).
+    @State private var selectedTeam = "us"
 
     // Playbook: browse saved plays grouped by formation, drop the chosen one on the
     // field, then either overwrite it (Update) or save the edited board as a new play.
@@ -102,6 +134,22 @@ struct WhiteboardScreen: View {
     @State private var showFieldSwitchConfirm = false
     @State private var switchFieldAfterSave = false
 
+    // Back button when reached from the main screen (no quickSaveContext) — prompts
+    // to save a drawn-but-unsaved play before leaving, same as switching fields does.
+    @State private var showExitSaveConfirm = false
+    @State private var exitAfterSave = false
+
+    // A play can't be saved without a set assigned (Playbook only browses by set) —
+    // if the coach never picked one from the Formation menu, this prompts for one
+    // (including "Custom", which only exists as a Playbook bucket, never as a
+    // placeable formation) right before the save/update actually happens.
+    private enum PendingSave {
+        case new(name: String)
+        case update(playId: String)
+    }
+    @State private var pendingSave: PendingSave?
+    @State private var showFormationPicker = false
+
     var body: some View {
         Group {
             if horizontalSizeClass == .regular {
@@ -119,29 +167,57 @@ struct WhiteboardScreen: View {
                 loadFromPlaybook(play)
             }
         }
+        .onDisappear {
+            if !handledExit {
+                handledExit = true
+                onBack?(pieces, actions)
+            }
+        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    if quickSaveContext != nil {
+                        showQuickSaveDialog = true
+                    } else if pieces.isEmpty && actions.isEmpty {
+                        handledExit = true
+                        onBack?(pieces, actions)
+                        dismiss()
+                    } else {
+                        showExitSaveConfirm = true
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("Back")
+                    }
+                }
+            }
+        }
+        .overlay {
+            if showQuickSaveDialog {
+                quickSaveDialog
+            }
+        }
+        .overlay {
+            if showExitSaveConfirm {
+                exitSaveConfirmDialog
+            }
+        }
         .sheet(isPresented: $showSaveModal) {
             saveModal
+        }
+        .sheet(isPresented: $showFormationPicker) {
+            formationPickerSheet
         }
         .overlay {
             if showPlaybook {
                 playbookOverlay
             }
         }
-        .confirmationDialog(
-            "Save this play before switching fields? Switching will clear the board.",
-            isPresented: $showFieldSwitchConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Save Play") {
-                switchFieldAfterSave = true
-                playNameInput = ""
-                showSaveModal = true
-            }
-            Button("Don't Save", role: .destructive) {
-                applyPendingFieldSwitch()
-            }
-            Button("Cancel") {
-                pendingFieldType = nil
+        .overlay {
+            if showFieldSwitchConfirm {
+                fieldSwitchConfirmDialog
             }
         }
         .alert("Error", isPresented: Binding(
@@ -271,10 +347,15 @@ struct WhiteboardScreen: View {
             titleVisibility: .visible
         ) {
             Button("Overwrite \"\(play.name)\"", role: .destructive) {
-                Task {
-                    updating = true
-                    _ = await appState.updatePlay(id: play.id, fieldType: fieldType, pieces: pieces, actions: actions, formation: selectedFormation)
-                    updating = false
+                if selectedFormation == nil {
+                    pendingSave = .update(playId: play.id)
+                    showFormationPicker = true
+                } else {
+                    Task {
+                        updating = true
+                        _ = await appState.updatePlay(id: play.id, fieldType: fieldType, pieces: pieces, actions: actions, formation: selectedFormation)
+                        updating = false
+                    }
                 }
             }
             Button("Cancel", role: .cancel) {}
@@ -305,12 +386,11 @@ struct WhiteboardScreen: View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
                 fieldMenu
+                teamMenu
                 formationMenu
             }
-            HStack(spacing: 10) {
-                positionMenu
-                moveMenu
-            }
+            positionMenu
+            moveMenu
             undoButton
             clearButton
             // Update Play / Save as New above already cover saving once a play is
@@ -325,11 +405,10 @@ struct WhiteboardScreen: View {
     private var sideColumnControls: some View {
         VStack(alignment: .leading, spacing: 10) {
             fieldMenu
+            teamMenu
             formationMenu
-            HStack(spacing: 10) {
-                positionMenu
-                moveMenu
-            }
+            positionMenu
+            moveMenu
             undoButton
             clearButton
             if loadedPlay == nil {
@@ -348,24 +427,61 @@ struct WhiteboardScreen: View {
         }
     }
 
+    // Each preset only goes where it actually fits on-screen — the 7 named sets are
+    // authored for the attacking box (yards ~77-102), which the Faceoff field's
+    // midfield-centered window doesn't reach at all, and the Faceoff set's far-side
+    // wing players fall outside a half field's window (by definition, half the
+    // field is off-screen). Offering a formation only where it fully fits means
+    // nothing from this menu can ever land off-screen.
     private var formationMenu: some View {
         Menu {
-            ForEach(formations.keys.sorted(), id: \.self) { name in
-                Button(name) { applyFormation(name) }
+            if fieldType != "mid" {
+                ForEach(formations.keys.sorted(), id: \.self) { name in
+                    Button(name) { applyFormation(name) }
+                }
+            }
+            if fieldType != "half" {
+                Button("Faceoff") { applyFaceoffFormation() }
             }
         } label: {
             controlLabel("Formation", value: selectedFormation ?? "Select", active: false)
         }
     }
 
+    // On the Faceoff field, only the positions that actually line up for a faceoff
+    // make sense — no Attack/Defense/Goalie anywhere near the X. On the half field,
+    // there's no faceoff at all, so FO has nowhere sensible to go.
+    private var availablePositionOptions: [PositionOption] {
+        if fieldType == "mid" {
+            let faceoffCodes: Set<String> = ["FO", "OM", "M", "DM", "LS"]
+            return positionOptions.filter { faceoffCodes.contains($0.code) }
+        }
+        if fieldType == "half" {
+            return positionOptions.filter { $0.code != "FO" }
+        }
+        return positionOptions
+    }
+
     private var positionMenu: some View {
         Menu {
-            ForEach(positionOptions, id: \.code) { option in
+            ForEach(availablePositionOptions, id: \.code) { option in
                 Button(option.label) { playMode = option.code }
             }
         } label: {
             let currentLabel = positionOptions.first { $0.code == playMode }?.label
             controlLabel("Position", value: currentLabel ?? "Select", active: isPositionMode)
+        }
+    }
+
+    private var teamMenu: some View {
+        Menu {
+            Button("Us") { selectedTeam = "us" }
+            Button("Opponent") { selectedTeam = "opponent" }
+        } label: {
+            // Always highlighted (unlike the other controls, which only light up
+            // while that mode is actively in use) — Team matters for every piece
+            // placed, so it should stay visually prominent at all times.
+            controlLabel("Team", value: selectedTeam == "opponent" ? "Opponent" : "Us", active: true)
         }
     }
 
@@ -448,6 +564,7 @@ struct WhiteboardScreen: View {
         guard type != fieldType else { return }
         if pieces.isEmpty && actions.isEmpty {
             fieldType = type
+            if type == "mid" { applyFaceoffFormation() }
         } else {
             pendingFieldType = type
             showFieldSwitchConfirm = true
@@ -464,6 +581,9 @@ struct WhiteboardScreen: View {
         loadedPlay = nil
         history = []
         pendingFieldType = nil
+        // The Faceoff field only makes sense with the faceoff set on it — every
+        // other formation lives in the attacking box, nowhere near midfield.
+        if fieldType == "mid" { applyFaceoffFormation() }
     }
 
     private func controlLabel(_ label: String, value: String, active: Bool) -> some View {
@@ -486,7 +606,11 @@ struct WhiteboardScreen: View {
     private func fieldAspectRatio(_ type: String) -> Double {
         switch type {
         case "half": return 60.0 / 55.0
-        case "mid": return 60.0 / 30.0
+        // 50yd tall (25yd each side of midfield) so the restraining lines — and the
+        // wing players who line up on them for a faceoff — are actually in view,
+        // not just the 3 players at the X. Keep in sync with FieldLinesView's own
+        // `window` and formationFieldY's "mid" case below.
+        case "mid": return 60.0 / 50.0
         default: return 60.0 / 110.0
         }
     }
@@ -510,10 +634,10 @@ struct WhiteboardScreen: View {
                 FieldLinesView(fieldType: fieldType, size: size)
 
                 ForEach(actions) { action in
-                    actionPath(action, size: size, color: .black)
+                    actionPath(action, size: size, opacity: 1)
                 }
                 if let drawingAction {
-                    actionPath(drawingAction, size: size, color: .black.opacity(0.6))
+                    actionPath(drawingAction, size: size, opacity: 0.6)
                 }
 
                 Rectangle()
@@ -535,10 +659,13 @@ struct WhiteboardScreen: View {
     }
 
     private func pieceView(_ piece: PlayPiece, size: CGSize) -> some View {
-        let label = piece.playerType ?? (piece.side == "offense" ? "X" : "O")
-        let isDefense = piece.side == "defense"
-        let fillColor: Color = isDefense ? .black : Color.white.opacity(0.85)
-        let textColor: Color = isDefense ? .white : (piece.side == "offense" ? Color(red: 0.07, green: 0.09, blue: 0.15) : Color(red: 0.98, green: 0.75, blue: 0.14))
+        // Color is by team (not position) — a defensive or face-off play can have
+        // both teams sharing a position (two FOs, two D's), so the color needs to
+        // say "us vs. them," which `side` (offense/defense) can't express on its own.
+        let isOpponent = (piece.team ?? "us") == "opponent"
+        let label = piece.playerType ?? (isOpponent ? "O" : "X")
+        let fillColor: Color = isOpponent ? .black : Color.white.opacity(0.85)
+        let textColor: Color = isOpponent ? .white : Color(red: 0.07, green: 0.09, blue: 0.15)
 
         return Circle()
             .fill(fillColor)
@@ -566,7 +693,10 @@ struct WhiteboardScreen: View {
             )
     }
 
-    private func actionPath(_ action: PlayAction, size: CGSize, color: Color) -> some View {
+    private func actionPath(_ action: PlayAction, size: CGSize, opacity: Double) -> some View {
+        // Same "us"/"opponent" color-coding as pieces — white for us, black for opponent.
+        let isOpponent = (action.team ?? "us") == "opponent"
+        let color: Color = (isOpponent ? Color.black : Color.white.opacity(0.85)).opacity(opacity)
         let absPoints = action.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
         return ZStack {
             Path { path in
@@ -602,7 +732,7 @@ struct WhiteboardScreen: View {
                     let fx = value.location.x / size.width
                     let fy = value.location.y / size.height
                     if drawingAction == nil {
-                        drawingAction = PlayAction(id: newId(), type: playMode, points: [PlayPoint(x: fx, y: fy)])
+                        drawingAction = PlayAction(id: newId(), type: playMode, points: [PlayPoint(x: fx, y: fy)], team: selectedTeam)
                     } else {
                         let last = drawingAction!.points.last!
                         let dx = (fx - last.x) * size.width
@@ -623,7 +753,10 @@ struct WhiteboardScreen: View {
                     let dy = value.location.y - start.y
                     if sqrt(dx * dx + dy * dy) < 10, let option = positionOptions.first(where: { $0.code == playMode }) {
                         pushHistory()
-                        pieces.append(PlayPiece(id: newId(), x: start.x / size.width, y: start.y / size.height, side: option.side, playerType: option.code))
+                        pieces.append(PlayPiece(
+                            id: newId(), x: start.x / size.width, y: start.y / size.height,
+                            side: option.side, playerType: option.code, team: selectedTeam
+                        ))
                     }
                 }
                 drawingAction = nil
@@ -636,7 +769,64 @@ struct WhiteboardScreen: View {
         pushHistory()
         selectedFormation = name
         loadedPlay = nil
-        pieces = formation.map { PlayPiece(id: newId(), x: $0.x, y: $0.y, side: "offense", playerType: $0.type) }
+
+        // Formations are authored for an offense attacking the bottom goal — on a
+        // full field, the Opponent's formation needs to sit in front of the OTHER
+        // goal, so it's flipped vertically onto the top half instead.
+        let mirror = fieldType == "full" && selectedTeam == "opponent"
+        let newPieces = formation.map {
+            PlayPiece(
+                id: newId(), x: $0.x, y: formationFieldY(mirror ? 1 - $0.y : $0.y),
+                side: "offense", playerType: $0.type, team: selectedTeam
+            )
+        }
+
+        if fieldType == "full" {
+            // A full field can show both teams' formations at once — placing one
+            // team's formation only replaces that team's own pieces, leaving
+            // whatever's on the other team's side alone.
+            pieces = pieces.filter { ($0.team ?? "us") != selectedTeam } + newPieces
+        } else {
+            // Half/faceoff field only ever shows one formation — picking a new one,
+            // even for the other team, replaces whatever was there before.
+            pieces = newPieces
+        }
+    }
+
+    // Both teams at once (see faceoffFormation's comment) — unlike applyFormation
+    // above, this doesn't key off the Team control or do any mirroring, since the
+    // data already specifies each piece's own team and which side of midfield it
+    // belongs on.
+    private func applyFaceoffFormation() {
+        pushHistory()
+        selectedFormation = "Faceoff"
+        loadedPlay = nil
+        pieces = faceoffFormation.map { point in
+            PlayPiece(
+                id: newId(), x: point.x, y: formationFieldY(point.y),
+                side: positionOptions.first { $0.code == point.type }?.side ?? "offense",
+                playerType: point.type, team: point.team
+            )
+        }
+    }
+
+    // Formation y-values are authored as a fraction of the FULL 110-yard field
+    // (e.g. 0.8636 == 15yd from the end line). But a piece's y is rendered as a
+    // fraction of whatever field view is currently showing (see FieldLinesView's
+    // own `window`), and half/faceoff views only show a slice of those 110 yards —
+    // so the same raw fraction lands at the wrong spot unless it's remapped into
+    // that slice's own 0...1 range first.
+    private func formationFieldY(_ fullFieldFraction: Double) -> Double {
+        let totalLength = 110.0
+        let midfieldY = totalLength / 2
+        let window: (start: Double, length: Double)
+        switch fieldType {
+        case "half": window = (midfieldY, totalLength - midfieldY)
+        case "mid": window = (midfieldY - 25, 50)
+        default: window = (0, totalLength)
+        }
+        let yardAbs = fullFieldFraction * totalLength
+        return (yardAbs - window.start) / window.length
     }
 
     private func load(play: Play) {
@@ -645,6 +835,229 @@ struct WhiteboardScreen: View {
         actions = play.actions ?? []
         drawingAction = nil
         selectedFormation = play.formation
+    }
+
+    // A plain centered card instead of the system confirmationDialog, which on
+    // iPad renders as an arrowed popover anchored to the Back button rather than
+    // staying put in the middle of the screen.
+    // A plain centered card instead of the system confirmationDialog, which on
+    // iPad renders as an arrowed popover anchored to the Field control rather than
+    // staying put in the middle of the screen.
+    private var fieldSwitchConfirmDialog: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture { pendingFieldType = nil }
+
+            VStack(spacing: 16) {
+                Text("Save this play before switching fields?")
+                    .font(.system(size: 18, weight: .bold))
+                    .multilineTextAlignment(.center)
+                Text("Switching will clear the board.")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+
+                VStack(spacing: 10) {
+                    Button {
+                        showFieldSwitchConfirm = false
+                        switchFieldAfterSave = true
+                        playNameInput = ""
+                        showSaveModal = true
+                    } label: {
+                        Text("Save Play")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(red: 0, green: 0.48, blue: 1))
+                            .cornerRadius(10)
+                    }
+
+                    Button {
+                        showFieldSwitchConfirm = false
+                        applyPendingFieldSwitch()
+                    } label: {
+                        Text("Don't Save")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(white: 0.93))
+                            .cornerRadius(10)
+                    }
+
+                    Button {
+                        showFieldSwitchConfirm = false
+                        pendingFieldType = nil
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(white: 0.93))
+                            .cornerRadius(10)
+                    }
+                }
+            }
+            .padding(24)
+            .frame(width: 320)
+            .background(Color(white: 0.98))
+            .cornerRadius(20)
+            .shadow(color: .black.opacity(0.3), radius: 20)
+        }
+    }
+
+    // Same pattern as fieldSwitchConfirmDialog, but for leaving the Whiteboard via
+    // the Back button (main-screen entry, not a game's quick-save flow) with a
+    // drawn-but-unsaved play on the board.
+    private var exitSaveConfirmDialog: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture { showExitSaveConfirm = false }
+
+            VStack(spacing: 16) {
+                Text("Save this play before leaving?")
+                    .font(.system(size: 18, weight: .bold))
+                    .multilineTextAlignment(.center)
+                Text("Leaving will discard the board.")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+
+                VStack(spacing: 10) {
+                    Button {
+                        showExitSaveConfirm = false
+                        exitAfterSave = true
+                        playNameInput = ""
+                        showSaveModal = true
+                    } label: {
+                        Text("Save Play")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(red: 0, green: 0.48, blue: 1))
+                            .cornerRadius(10)
+                    }
+
+                    Button {
+                        showExitSaveConfirm = false
+                        handledExit = true
+                        onBack?(pieces, actions)
+                        dismiss()
+                    } label: {
+                        Text("Don't Save")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(white: 0.93))
+                            .cornerRadius(10)
+                    }
+
+                    Button {
+                        showExitSaveConfirm = false
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(white: 0.93))
+                            .cornerRadius(10)
+                    }
+                }
+            }
+            .padding(24)
+            .frame(width: 320)
+            .background(Color(white: 0.98))
+            .cornerRadius(20)
+            .shadow(color: .black.opacity(0.3), radius: 20)
+        }
+    }
+
+    private var quickSaveDialog: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture { showQuickSaveDialog = false }
+
+            VStack(spacing: 16) {
+                Text("Save this play before leaving?")
+                    .font(.system(size: 18, weight: .bold))
+                    .multilineTextAlignment(.center)
+
+                VStack(spacing: 10) {
+                    Button {
+                        showQuickSaveDialog = false
+                        Task { await quickSaveAndLeave() }
+                    } label: {
+                        Text("Save")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(red: 0, green: 0.48, blue: 1))
+                            .cornerRadius(10)
+                    }
+
+                    Button {
+                        showQuickSaveDialog = false
+                        handledExit = true
+                        onBack?(pieces, actions)
+                        dismiss()
+                    } label: {
+                        Text("Discard")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(white: 0.93))
+                            .cornerRadius(10)
+                    }
+
+                    Button {
+                        showQuickSaveDialog = false
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(white: 0.93))
+                            .cornerRadius(10)
+                    }
+                }
+            }
+            .padding(24)
+            .frame(width: 320)
+            .background(Color(white: 0.98))
+            .cornerRadius(20)
+            .shadow(color: .black.opacity(0.3), radius: 20)
+        }
+    }
+
+    // The in-game "Save" choice from the Discard/Save prompt — no name or formation
+    // picker, since that friction is exactly what quick in-game saving needs to avoid.
+    // Filed under an "Opponent Date" formation so it's easy to find in the Playbook
+    // without colliding with other games' quick saves.
+    private func quickSaveAndLeave() async {
+        guard let ctx = quickSaveContext else {
+            handledExit = true
+            onBack?(pieces, actions)
+            dismiss()
+            return
+        }
+        let gameFormation = "\(ctx.opponent) \(ctx.date)"
+        let existingCount = appState.savedPlays.filter { $0.formation == gameFormation }.count
+        let autoName = "Quick Play \(existingCount + 1)"
+        _ = await appState.savePlay(name: autoName, fieldType: fieldType, pieces: pieces, actions: actions, formation: gameFormation)
+        handledExit = true
+        onBack?(pieces, actions)
+        dismiss()
     }
 
     private var saveModal: some View {
@@ -658,27 +1071,86 @@ struct WhiteboardScreen: View {
                     Button("Cancel") {
                         showSaveModal = false
                         switchFieldAfterSave = false
+                        exitAfterSave = false
                         pendingFieldType = nil
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(saving ? "Saving..." : "Save") {
-                        Task {
-                            saving = true
-                            let inserted = await appState.savePlay(name: playNameInput, fieldType: fieldType, pieces: pieces, actions: actions, formation: selectedFormation)
-                            saving = false
-                            if let inserted {
-                                loadedPlay = inserted
-                                showSaveModal = false
-                                if switchFieldAfterSave {
-                                    applyPendingFieldSwitch()
-                                    switchFieldAfterSave = false
-                                }
-                            }
+                        if selectedFormation == nil {
+                            pendingSave = .new(name: playNameInput)
+                            showSaveModal = false
+                            showFormationPicker = true
+                        } else {
+                            Task { await performNewSave(name: playNameInput) }
                         }
                     }
                     .disabled(saving)
                 }
+            }
+        }
+    }
+
+    private func performNewSave(name: String) async {
+        saving = true
+        let inserted = await appState.savePlay(name: name, fieldType: fieldType, pieces: pieces, actions: actions, formation: selectedFormation)
+        saving = false
+        if let inserted {
+            loadedPlay = inserted
+            showSaveModal = false
+            if switchFieldAfterSave {
+                applyPendingFieldSwitch()
+                switchFieldAfterSave = false
+            }
+            if exitAfterSave {
+                exitAfterSave = false
+                handledExit = true
+                onBack?(pieces, actions)
+                dismiss()
+            }
+        }
+    }
+
+    // Preset Formation names double as Playbook sets, plus "Custom" — which only
+    // exists here as a bucket for plays that don't fit a named set. It's deliberately
+    // left out of the `formations` dictionary so it never shows up in the on-field
+    // Formation menu as something a coach could place pieces from.
+    private var formationPickerSheet: some View {
+        NavigationStack {
+            List {
+                ForEach(formations.keys.sorted(), id: \.self) { name in
+                    Button(name) { confirmFormationChoice(name) }
+                }
+                Button("Custom") { confirmFormationChoice("Custom") }
+            }
+            .navigationTitle("Save Under Which Set?")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        showFormationPicker = false
+                        pendingSave = nil
+                        switchFieldAfterSave = false
+                        exitAfterSave = false
+                        pendingFieldType = nil
+                    }
+                }
+            }
+        }
+    }
+
+    private func confirmFormationChoice(_ name: String) {
+        selectedFormation = name
+        showFormationPicker = false
+        guard let pending = pendingSave else { return }
+        pendingSave = nil
+        switch pending {
+        case .new(let name):
+            Task { await performNewSave(name: name) }
+        case .update(let playId):
+            Task {
+                updating = true
+                _ = await appState.updatePlay(id: playId, fieldType: fieldType, pieces: pieces, actions: actions, formation: selectedFormation)
+                updating = false
             }
         }
     }
@@ -725,7 +1197,10 @@ struct FieldLinesView: View {
     private var window: (start: Double, length: Double) {
         switch fieldType {
         case "half": return (midfieldY, totalLength - midfieldY)
-        case "mid": return (midfieldY - 15, 30)
+        // 25yd each side of midfield — wide enough to actually show the restraining
+        // lines (20yd out) that a faceoff's wing players line up on, not just the
+        // 3 players at the X. Keep in sync with fieldAspectRatio and formationFieldY.
+        case "mid": return (midfieldY - 25, 50)
         default: return (0, totalLength)
         }
     }
