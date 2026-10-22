@@ -50,8 +50,7 @@ struct RosterScreen: View {
             if an != bn { return an < bn }
             return a.firstName.lowercased() < b.firstName.lowercased()
         case .position:
-            let ap = (a.position ?? "").lowercased(), bp = (b.position ?? "").lowercased()
-            return ap < bp
+            return positionGroupRank(a.position) < positionGroupRank(b.position)
         }
     }
 

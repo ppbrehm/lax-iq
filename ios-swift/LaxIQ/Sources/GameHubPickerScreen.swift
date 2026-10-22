@@ -23,6 +23,9 @@ struct GameHubPickerScreen: View {
     // they've resolved the conflict one way or the other.
     @State private var conflictingLiveGame: Game?
     @State private var pendingSelection: Game?
+    // Set right after confirming "Start Game" — drives the full-screen countdown
+    // before actually navigating into Game Hub, so starting a game feels like an event.
+    @State private var countdownGameId: String?
     // Overrides the default role-based screen choice below when the coach taps
     // "Go To Stats Input" / "Go to Game Hub" — switching flips this flag instead of
     // pushing a new stack entry, so back always pops directly to this picker in one
@@ -40,6 +43,28 @@ struct GameHubPickerScreen: View {
         }
     }
 
+    // The game the coach is most likely here for: the live one if a game is
+    // already in progress, otherwise the next scheduled game up on the calendar.
+    // Highlighted green in the list so it's obvious what's ready to start.
+    private var currentGameId: String? {
+        if let live = sortedGames.first(where: { $0.status == "in_progress" }) {
+            return live.id
+        }
+        return sortedGames.first(where: { $0.status == "scheduled" })?.id
+    }
+
+    private func rowBackground(_ game: Game) -> Color {
+        if game.id == currentGameId {
+            return Color.green.opacity(0.22)
+        }
+        return game.status == "completed" ? Color(white: 0.9) : Color.white
+    }
+
+    // Cumulative W-L-T through each completed game, in schedule (chronological) order.
+    private var runningRecords: [String: (wins: Int, losses: Int, ties: Int)] {
+        seasonRunningRecords(sortedGames)
+    }
+
     var body: some View {
         Group {
             if sortedGames.isEmpty {
@@ -47,15 +72,18 @@ struct GameHubPickerScreen: View {
                     .foregroundColor(.gray)
                     .padding()
             } else {
-                List(sortedGames) { game in
+                List(Array(sortedGames.enumerated()), id: \.element.id) { offset, game in
                     Button {
                         selectGame(game)
                     } label: {
-                        GameRowView(game: game)
+                        GameRowView(game: game, gameNumber: offset + 1, record: runningRecords[game.id], cardColor: rowBackground(game))
                     }
                     .buttonStyle(.plain)
-                    .listRowBackground(game.location == "home" ? Color.blue.opacity(0.08) : Color.orange.opacity(0.08))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                 }
+                .listStyle(.plain)
             }
         }
         .navigationTitle("Game Hub")
@@ -104,11 +132,28 @@ struct GameHubPickerScreen: View {
                 liveGameConflictPrompt(conflictingLiveGame)
             }
         }
+        .overlay {
+            if let countdownGameId, let game = appState.games.first(where: { $0.id == countdownGameId }) {
+                GameStartCountdownOverlay(
+                    gameNumber: (sortedGames.firstIndex(where: { $0.id == countdownGameId }) ?? 0) + 1,
+                    teamName: appState.currentTeam?.name ?? "Us",
+                    opponent: game.opponent,
+                    isHome: game.location == "home"
+                ) {
+                    confirmedGameId = countdownGameId
+                    navigate = true
+                    self.countdownGameId = nil
+                }
+            }
+        }
         .task { await appState.loadGames() }
     }
 
     private func selectGame(_ game: Game) {
-        if let live = appState.games.first(where: { $0.status == "in_progress" && $0.id != game.id }) {
+        // A completed game is read-only (stats as they were), so it can't actually
+        // conflict with a live game — only starting/resuming another game can.
+        if game.status != "completed",
+           let live = appState.games.first(where: { $0.status == "in_progress" && $0.id != game.id }) {
             conflictingLiveGame = live
             pendingSelection = game
         } else {
@@ -147,8 +192,7 @@ struct GameHubPickerScreen: View {
                         let gameId = game.id
                         Task {
                             await appState.startGame(gameId: gameId)
-                            confirmedGameId = gameId
-                            navigate = true
+                            countdownGameId = gameId
                         }
                         pendingGame = nil
                     } label: {
@@ -264,36 +308,115 @@ struct GameHubPickerScreen: View {
     }
 }
 
+// Full-screen "3...2...1...GO!" countdown shown right after confirming Start
+// Game, before actually navigating into Game Hub — makes kicking off a game
+// feel like an event instead of an instant screen swap.
+struct GameStartCountdownOverlay: View {
+    let gameNumber: Int
+    let teamName: String
+    let opponent: String
+    let isHome: Bool
+    var onFinished: () -> Void
+
+    @State private var count = 3
+    @State private var showGo = false
+    @State private var pulse = false
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            VStack(spacing: 32) {
+                Text("Game \(gameNumber): \(teamName) \(isHome ? "vs" : "at") \(opponent)")
+                    .font(.system(size: 60, weight: .heavy, design: .rounded))
+                    .minimumScaleFactor(0.3)
+                    .lineLimit(1)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 24)
+
+                Text(showGo ? "GO!" : "\(count)")
+                    .font(.system(size: 140, weight: .black, design: .rounded))
+                    .foregroundColor(showGo ? .green : .white)
+                    .scaleEffect(pulse ? 1.15 : 0.85)
+                    .shadow(color: (showGo ? Color.green : Color.white).opacity(0.6), radius: 30)
+            }
+        }
+        .task {
+            for n in [3, 2, 1] {
+                count = n
+                pulse = false
+                withAnimation(.easeOut(duration: 0.15)) { pulse = true }
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+            showGo = true
+            pulse = false
+            withAnimation(.easeOut(duration: 0.2)) { pulse = true }
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            onFinished()
+        }
+    }
+}
+
+// Shared tabular row for every schedule list (Game Hub's picker and the Home
+// screen's read-only Schedule): Game, Date, Opponent (with a home/away badge
+// beside it), Result, Record — no column headers, so each cell is self-
+// labeled enough to read on its own. Lives in a rounded "card" rather than a
+// plain list row.
 struct GameRowView: View {
     let game: Game
-    private let sideColumnWidth: CGFloat = 76
+    var gameNumber: Int? = nil
+    // Our own team's cumulative record through this game — kept in its own
+    // column, away from the opponent's name, so it doesn't read as theirs.
+    var record: (wins: Int, losses: Int, ties: Int)? = nil
+    var cardColor: Color = Color(white: 0.96)
+
+    private let gameWidth: CGFloat = 68
+    private let dateWidth: CGFloat = 72
+    private let recordWidth: CGFloat = 62
 
     var body: some View {
         let isHome = game.location == "home"
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
+            if let gameNumber {
+                Text("Game \(gameNumber)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.black)
+                    .frame(width: gameWidth, alignment: .leading)
+            }
+
             Text(shortDate(game.date))
-                .font(.system(size: 17, weight: .bold))
-                .frame(width: sideColumnWidth, alignment: .leading)
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: dateWidth, alignment: .leading)
 
-            Text(game.opponent)
-                .font(.system(size: 19, weight: .bold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .frame(maxWidth: .infinity, alignment: .center)
-
-            VStack(alignment: .trailing, spacing: 4) {
+            HStack(spacing: 8) {
+                Text(isHome ? game.opponent : "@ \(game.opponent)")
+                    .font(.system(size: 19, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 Text(isHome ? "HOME" : "AWAY")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 7)
                     .padding(.vertical, 3)
                     .background(isHome ? Color.blue : Color.orange)
                     .cornerRadius(6)
-                GameStatusBadge(game: game)
             }
-            .frame(width: sideColumnWidth, alignment: .trailing)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            GameStatusBadge(game: game)
+                .frame(width: 100, alignment: .leading)
+
+            Text(record.map(seasonRecordLabel) ?? "—")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.black)
+                .frame(width: recordWidth, alignment: .trailing)
         }
-        .padding(.vertical, 4)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 24)
+        .background(cardColor)
+        .cornerRadius(14)
     }
 }
 
@@ -311,7 +434,7 @@ struct GameStatusBadge: View {
             } else if game.ourScore < game.opponentScore {
                 return ("L  \(score)", .red)
             } else {
-                return ("T  \(score)", .gray)
+                return ("T  \(score)", .black)
             }
         default:
             return nil
@@ -321,10 +444,10 @@ struct GameStatusBadge: View {
     var body: some View {
         if let config {
             Text(config.text)
-                .font(.system(size: 12, weight: .bold))
+                .font(.system(size: 14, weight: .bold))
                 .foregroundColor(config.color)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
                 .background(config.color.opacity(0.12))
                 .cornerRadius(999)
         }

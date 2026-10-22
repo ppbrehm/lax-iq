@@ -29,38 +29,61 @@ struct GameStatsScreen: View {
         let totalStats = calculateTotalStats(game.stats)
 
         return AnyView(
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // For live stat input, the opponent/date move up into the nav bar
-                    // itself (see the .principal toolbar item below) so this block
-                    // doesn't eat space the stat table could use instead.
-                    if readOnly {
+            VStack(alignment: .leading, spacing: 16) {
+                // For live stat input, the opponent/date move up into the nav bar
+                // itself (see the .principal toolbar item below) so this block
+                // doesn't eat space the stat table could use instead.
+                if readOnly {
+                    HStack(alignment: .center) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(isHome ? game.opponent : "@ \(game.opponent)")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(isHome ? .blue : .orange)
-                            Text(shortDate(game.date)).font(.system(size: 14)).foregroundColor(.gray)
+                            HStack(spacing: 10) {
+                                Text(isHome ? game.opponent : "@ \(game.opponent)")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundColor(isHome ? .blue : .orange)
+                                if game.status == "completed" {
+                                    Text("\(game.ourScore)-\(game.opponentScore) \(resultLetter(game))")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.black)
+                                }
+                            }
+                            Text(shortDate(game.date)).font(.system(size: 14)).foregroundColor(.black)
+                        }
+                        Spacer()
+                        if game.status == "completed" && !editingStats {
+                            editStatsButton
                         }
                     }
+                    .padding(.horizontal)
+                    .padding(.top)
+                }
 
-                    // Live stat input is purely about collecting stats — skip the team
-                    // totals summary here so the roster table gets as much room as
-                    // possible; it's still shown once the game is final (readOnly).
-                    if readOnly {
-                        totalsCard(totalStats: totalStats)
-                    }
+                // Live stat input is purely about collecting stats — skip the team
+                // totals summary here so the roster table gets as much room as
+                // possible; it's still shown once the game is final (readOnly).
+                if readOnly {
+                    totalsCard(totalStats: totalStats)
+                        .padding(.horizontal)
+                }
 
-                    if !readOnly {
-                        timerSection(game: game)
-                    }
+                if !readOnly {
+                    timerSection(game: game)
+                        .padding(.horizontal)
+                        .padding(.top)
+                }
 
-                    if game.players.isEmpty {
-                        Text("No players in this game. Go to the Roster screen to add players.")
-                            .foregroundColor(.gray)
-                    } else {
+                // Everything above this point (opponent/date, totals, timer) stays
+                // fixed — only the roster table itself scrolls, so the team context
+                // is always visible no matter how far down the roster the coach scrolls.
+                if game.players.isEmpty {
+                    Text("No players in this game. Go to the Roster screen to add players.")
+                        .foregroundColor(.gray)
+                        .padding(.horizontal)
+                } else {
+                    ScrollView {
                         PlayerStatsTable(
                             game: game,
                             readOnly: !statsEditable,
+                            lastNameOnly: !readOnly,
                             onToggleIn: { index in Task { await appState.togglePlayerIn(gameId: game.id, index: index) } },
                             onStatChange: { index, col, delta in
                                 if col == StatIndex.goals, delta > 0, statsEditable {
@@ -69,12 +92,15 @@ struct GameStatsScreen: View {
                                 } else {
                                     Task { await appState.handleStatChange(gameId: game.id, row: index, col: col, delta: delta) }
                                 }
-                            }
+                            },
+                            sortColumn: $appState.statsSortColumn,
+                            sortAscending: $appState.statsSortAscending
                         )
+                        .padding(.horizontal)
                     }
                 }
-                .padding()
             }
+            .padding(.bottom)
             .navigationTitle(readOnly ? backLabel.replacingOccurrences(of: "← Back to ", with: "") : "Stats Input")
             .navigationBarTitleDisplayMode(.inline)
             .lockLandscape(if: !readOnly)
@@ -101,10 +127,16 @@ struct GameStatsScreen: View {
                         Button("Go to Game Hub", action: onSwitchToGameHub)
                     }
                 }
-                if readOnly && game.status == "completed" && !editingStats {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        editStatsButton
-                    }
+            }
+            .onAppear {
+                // Sort state is shared (AppState) so it survives switching between
+                // Stats Input and Game Hub during a live game — but for a completed
+                // game's read-only view, each fresh visit should start back at the
+                // default position-order sort rather than remembering a past visit's
+                // custom sort.
+                if readOnly {
+                    appState.statsSortColumn = nil
+                    appState.statsSortAscending = true
                 }
             }
             .task {
@@ -136,6 +168,12 @@ struct GameStatsScreen: View {
                 Text("There's still \(formatTimeLeft(elapsedSec: game.timerElapsedSec)) left in \(quarterLabel(game.quarter)). Switching now will reset the clock to 12:00.")
             }
         )
+    }
+
+    private func resultLetter(_ game: Game) -> String {
+        if game.ourScore > game.opponentScore { return "W" }
+        if game.ourScore < game.opponentScore { return "L" }
+        return "T"
     }
 
     private var editStatsButton: some View {
@@ -170,7 +208,7 @@ struct GameStatsScreen: View {
                 Text(isHome ? game.opponent : "@ \(game.opponent)")
                     .font(.system(size: 26, weight: .bold))
                     .foregroundColor(isHome ? .blue : .orange)
-                Text(shortDate(game.date)).font(.system(size: 17)).foregroundColor(.gray)
+                Text(shortDate(game.date)).font(.system(size: 17)).foregroundColor(.black)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -188,27 +226,34 @@ struct GameStatsScreen: View {
             }
             .frame(maxWidth: .infinity)
 
-            VStack(spacing: 10) {
+            HStack(spacing: 14) {
                 Text(formatTimeLeft(elapsedSec: game.timerElapsedSec))
-                    .font(.system(size: 36, weight: .bold, design: .monospaced))
-                HStack(spacing: 10) {
+                    .font(.system(size: 52, weight: .bold, design: .monospaced))
+
+                VStack(spacing: 6) {
                     Button(game.timerRunning ? "Running" : "Start") {
                         Task { await appState.toggleGameTimer(gameId: game.id) }
                     }
                     .disabled(game.timerRunning)
                     .buttonStyle(.borderedProminent)
+                    .tint(game.timerRunning ? .gray : .green)
+                    .controlSize(.small)
 
                     Button("Stop") {
                         Task { await appState.toggleGameTimer(gameId: game.id) }
                     }
                     .disabled(!game.timerRunning)
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
+                    .tint(game.timerRunning ? .red : .gray)
+                    .controlSize(.small)
 
                     Button("Reset") {
                         Task { await appState.resetGameTimer(gameId: game.id) }
                     }
                     .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
+                .frame(width: 80)
             }
             .frame(maxWidth: .infinity)
         }
@@ -283,50 +328,91 @@ private let statGroups: [StatGroup] = [
     StatGroup(name: "Goalie", columns: [StatIndex.sa, StatIndex.ga, StatIndex.saves]),
 ]
 
-private enum PlayerStatsSortColumn: Hashable {
+enum PlayerStatsSortColumn: Hashable {
     case number, name, position, stat(Int)
 }
 
 private struct PlayerStatsTable: View {
     let game: Game
     let readOnly: Bool
+    // True only for the live Stats Input flow (not a completed game, whether
+    // viewed read-only or under "Edit Stats") — shows just the last name there
+    // to keep the whole table on-screen with no horizontal scrolling. Every
+    // other roster/stats view keeps "Last, First".
+    var lastNameOnly: Bool = false
     var onToggleIn: (Int) -> Void
     var onStatChange: (Int, Int, Int) -> Void
+    // Bound to AppState rather than local @State — this table is recreated every
+    // time the coach switches between Stats Input and Game Hub, so local state
+    // would silently reset the sort each time. AppState lives for the whole
+    // session, so the sort sticks until the coach picks a different one.
+    @Binding var sortColumn: PlayerStatsSortColumn?
+    @Binding var sortAscending: Bool
 
-    @State private var sortColumn: PlayerStatsSortColumn?
-    @State private var sortAscending = true
-
-    private let numberWidth: CGFloat = 44
-    private let nameWidth: CGFloat = 130
-    private let positionWidth: CGFloat = 50
+    private let numberWidth: CGFloat = 30
+    private var nameWidth: CGFloat { lastNameOnly ? 74 : 120 }
+    private let positionWidth: CGFloat = 36
     private let toggleWidth: CGFloat = 40
+    private let toggleTimeGapWidth: CGFloat = 10
     private let timeWidth: CGFloat = 54
     private let statWidth: CGFloat = 100
     private let groupDividerWidth: CGFloat = 12
 
-    // Until the coach taps a column header: on-field players first, grouped
-    // Attack/Middie/Defense/Goalie; then bench players, most-recently-subbed-out
-    // first (never-subbed-out players sort to the very end).
-    private var defaultSortedIndices: [Int] {
-        game.players.indices.sorted { a, b in
+    // Nobody's been subbed in yet — true right when a game is first started,
+    // before in/out status means anything.
+    private var gameJustStarted: Bool {
+        !game.playerIn.contains(true)
+    }
+
+    // On-field players always come first, no matter what the coach sorts by —
+    // the table is for managing who's in during the game, so in/out status
+    // takes priority over any column sort, which only orders within each group.
+    //
+    // Exception: with no column picked, a completed game (viewing past stats)
+    // or a game that was just started has no meaningful in/out state to group
+    // by, so the default instead falls back to plain position order —
+    // Attack, LSM, Middie, Defense, Goalie.
+    private var sortedIndices: [Int] {
+        if sortColumn == nil && (readOnly || gameJustStarted) {
+            return game.players.indices.sorted { a, b in
+                let rankA = positionGroupRank(game.players[a].position)
+                let rankB = positionGroupRank(game.players[b].position)
+                if rankA != rankB { return rankA < rankB }
+                return (Int(game.players[a].number ?? "") ?? Int.max) < (Int(game.players[b].number ?? "") ?? Int.max)
+            }
+        }
+
+        return game.players.indices.sorted { a, b in
             let aIn = game.playerIn[a]
             let bIn = game.playerIn[b]
             if aIn != bIn { return aIn }
 
-            if aIn {
-                return positionGroupRank(game.players[a].position) < positionGroupRank(game.players[b].position)
+            if let sortColumn {
+                let result = isLess(a, b, column: sortColumn)
+                return sortAscending ? result : !result
             }
 
-            // Smaller stint = subbed out more recently (the stint clock resets to 0 on every sub).
-            return game.playerStintSec[a] < game.playerStintSec[b]
-        }
-    }
+            let numberA = Int(game.players[a].number ?? "") ?? Int.max
+            let numberB = Int(game.players[b].number ?? "") ?? Int.max
 
-    private var sortedIndices: [Int] {
-        guard let sortColumn else { return defaultSortedIndices }
-        return game.players.indices.sorted { a, b in
-            let result = isLess(a, b, column: sortColumn)
-            return sortAscending ? result : !result
+            if aIn {
+                let rankA = positionGroupRank(game.players[a].position)
+                let rankB = positionGroupRank(game.players[b].position)
+                if rankA != rankB { return rankA < rankB }
+                return numberA < numberB
+            }
+
+            // Smaller stint = subbed out more recently (the stint clock resets to 0
+            // on every sub). Bench players who've never been in at all are all tied
+            // at 0 here — without tiebreakers that tie falls back to raw roster/DB
+            // order, which looked like a shuffle every time the in/out state
+            // changed. Position, then number, keeps it stable instead.
+            let stintA = game.playerStintSec[a], stintB = game.playerStintSec[b]
+            if stintA != stintB { return stintA < stintB }
+            let rankA = positionGroupRank(game.players[a].position)
+            let rankB = positionGroupRank(game.players[b].position)
+            if rankA != rankB { return rankA < rankB }
+            return numberA < numberB
         }
     }
 
@@ -362,12 +448,13 @@ private struct PlayerStatsTable: View {
                 ForEach(sortedIndices, id: \.self) { index in
                     playerRow(index: index, player: game.players[index])
                 }
+                .animation(.easeInOut(duration: 0.35), value: sortedIndices)
             }
         }
     }
 
     private var leadingColumnsWidth: CGFloat {
-        numberWidth + nameWidth + positionWidth + (readOnly ? 0 : toggleWidth + timeWidth)
+        numberWidth + nameWidth + positionWidth + (readOnly ? 0 : toggleWidth + toggleTimeGapWidth + timeWidth)
     }
 
     // Lighter shades of gray only, alternating per stat group so it's easy to tell
@@ -415,6 +502,7 @@ private struct PlayerStatsTable: View {
             sortHeaderButton("Pos", column: .position, width: positionWidth)
             if !readOnly {
                 Text("In").frame(width: toggleWidth)
+                Color.clear.frame(width: toggleTimeGapWidth)
                 Text("Time").frame(width: timeWidth)
             }
             ForEach(Array(statGroups.enumerated()), id: \.offset) { i, group in
@@ -447,7 +535,7 @@ private struct PlayerStatsTable: View {
                 .font(.system(size: 13, weight: .semibold))
                 .frame(width: numberWidth, alignment: .leading)
 
-            Text("\(player.last_name), \(player.first_name)")
+            Text(lastNameOnly ? player.last_name : "\(player.last_name), \(player.first_name)")
                 .font(.system(size: 13, weight: .semibold))
                 .lineLimit(1)
                 .frame(width: nameWidth, alignment: .leading)
@@ -462,6 +550,7 @@ private struct PlayerStatsTable: View {
                 Toggle("", isOn: Binding(get: { game.playerIn[index] }, set: { _ in onToggleIn(index) }))
                     .labelsHidden()
                     .frame(width: toggleWidth)
+                Color.clear.frame(width: toggleTimeGapWidth)
                 Text(formatSeconds(game.playerTimesSec[index]))
                     .font(.system(size: 12, design: .monospaced))
                     .frame(width: timeWidth)

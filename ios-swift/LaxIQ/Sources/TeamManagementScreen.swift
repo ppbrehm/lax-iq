@@ -5,6 +5,9 @@ struct TeamManagementScreen: View {
     let userId: String
     var onSignOut: () -> Void
 
+    @State private var showDeleteConfirm = false
+    @State private var deleting = false
+
     var body: some View {
         List {
             Section {
@@ -37,8 +40,20 @@ struct TeamManagementScreen: View {
                 Button("Sign Out", action: onSignOut)
                     .foregroundColor(.red)
             }
+
+            Section {
+                Button("Delete Account") {
+                    showDeleteConfirm = true
+                }
+                .foregroundColor(.red)
+            }
         }
         .navigationTitle("Settings")
+        .overlay {
+            if showDeleteConfirm {
+                deleteAccountConfirm
+            }
+        }
         .alert("Error", isPresented: Binding(
             get: { !appState.errorMessage.isEmpty },
             set: { if !$0 { appState.errorMessage = "" } }
@@ -46,6 +61,67 @@ struct TeamManagementScreen: View {
             Button("OK") { appState.errorMessage = "" }
         } message: {
             Text(appState.errorMessage)
+        }
+    }
+
+    // A plain centered card instead of the system confirmationDialog, which on
+    // iPad renders as an arrowed popover anchored to the tapped row rather than
+    // staying put in the middle of the screen.
+    private var deleteAccountConfirm: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture { if !deleting { showDeleteConfirm = false } }
+
+            VStack(spacing: 16) {
+                Text("Delete your account?")
+                    .font(.system(size: 18, weight: .bold))
+                Text("This permanently deletes your login and removes you from \(appState.currentTeam?.name ?? "your team"). This can't be undone.")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+
+                VStack(spacing: 10) {
+                    Button {
+                        deleting = true
+                        Task {
+                            let success = await appState.deleteAccount()
+                            deleting = false
+                            showDeleteConfirm = false
+                            if success {
+                                onSignOut()
+                            }
+                        }
+                    } label: {
+                        Text(deleting ? "Deleting..." : "Delete Account")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.red)
+                            .cornerRadius(10)
+                    }
+                    .disabled(deleting)
+
+                    Button {
+                        showDeleteConfirm = false
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(white: 0.93))
+                            .cornerRadius(10)
+                    }
+                    .disabled(deleting)
+                }
+            }
+            .padding(24)
+            .frame(width: 320)
+            .background(Color(white: 0.98))
+            .cornerRadius(20)
+            .shadow(color: .black.opacity(0.3), radius: 20)
         }
     }
 }

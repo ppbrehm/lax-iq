@@ -16,6 +16,7 @@
 		5CC2A9E96A072B80FD197E67 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 820C0429D0E989EDEB6B85EB /* Supabase */; };
 		5ED36246312C54B7B280B228 /* RosterStatsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A226B8AFFD71BCD8B2F2FD8 /* RosterStatsScreen.swift */; };
 		6089AEE16D628AEA82EE5838 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ED5F1A33527346B785E4FCB /* ContentView.swift */; };
+		6BD01DFE90D47700DAC09D1D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AFA843352B729E5487491FB6 /* Assets.xcassets */; };
 		6E0FC485B4510C0EEC0D6E23 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE278CBCB7A60F094DFDF353 /* AppState.swift */; };
 		764DE31A2DC4FD13B4951493 /* HomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD2DD4746580DBD6C5E1AAFB /* HomeScreen.swift */; };
 		7855BF6DBB147DAF83521438 /* OrientationLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10804254981476DAF03D66B8 /* OrientationLock.swift */; };
@@ -49,8 +50,9 @@
 		921228ADCB4A60A1373FCD37 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		927F09F5CEF8E0572C3497E7 /* NoTeamScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoTeamScreen.swift; sourceTree = "<group>"; };
 		A3E7EF5BCF53AD5A12EBACD9 /* Routes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Routes.swift; sourceTree = "<group>"; };
+		AFA843352B729E5487491FB6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B7A5F404D31730941518B769 /* SignupScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupScreen.swift; sourceTree = "<group>"; };
-		BA601D1C37BFCA77A26C11CB /* LaxIQ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LaxIQ.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BA601D1C37BFCA77A26C11CB /* LaxIQ.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LaxIQ.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD2DD4746580DBD6C5E1AAFB /* HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreen.swift; sourceTree = "<group>"; };
 		DE1073BAF2CDBB526FC18BD5 /* WhiteboardScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhiteboardScreen.swift; sourceTree = "<group>"; };
 		DE278CBCB7A60F094DFDF353 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
@@ -83,9 +85,19 @@
 		65D4B2533BE15D775FE3EC55 = {
 			isa = PBXGroup;
 			children = (
+				A15D6A7FCF19145BC3207339 /* Resources */,
 				B374099C8D31F97AF7BA5C53 /* Sources */,
 				1AD654F9CDE4E10E57023F7F /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		A15D6A7FCF19145BC3207339 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				AFA843352B729E5487491FB6 /* Assets.xcassets */,
+			);
+			name = Resources;
+			path = LaxIQ/Resources;
 			sourceTree = "<group>";
 		};
 		B374099C8D31F97AF7BA5C53 /* Sources */ = {
@@ -127,6 +139,7 @@
 			buildConfigurationList = 2E8F27E50D5A9E71B9DEB619 /* Build configuration list for PBXNativeTarget "LaxIQ" */;
 			buildPhases = (
 				ECBD6002C733303132EF4DBF /* Sources */,
+				7C3666E2342B4CFFD08DA127 /* Resources */,
 				8EDF7F0340FCFAA0A57DF227 /* Frameworks */,
 			);
 			buildRules = (
@@ -149,6 +162,8 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
 			};
 			buildConfigurationList = 312EBF305A77EBBF7DC13233 /* Build configuration list for PBXProject "LaxIQ" */;
 			developmentRegion = en;
@@ -171,6 +186,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		7C3666E2342B4CFFD08DA127 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6BD01DFE90D47700DAC09D1D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		ECBD6002C733303132EF4DBF /* Sources */ = {
@@ -211,7 +237,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = 6A5PSG44Q4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LaxIQ/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -349,7 +374,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = 6A5PSG44Q4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LaxIQ/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

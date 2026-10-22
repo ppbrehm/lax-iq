@@ -16,18 +16,22 @@ struct ScheduleScreen: View {
     @State private var opponent = ""
     @State private var location = "home"
 
-    private func scheduleRow(_ game: Game) -> some View {
-        let isHome = game.location == "home"
-        return HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(shortDate(game.date)).font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(isHome ? .blue : .orange)
-                Text(isHome ? game.opponent : "@ \(game.opponent)")
-                    .font(.system(size: 16))
-            }
-            Spacer()
-            GameStatusBadge(game: game)
+    // appState.games comes back newest-created-first (for other screens that want
+    // recent activity up top) — the Schedule itself should read in actual game-date
+    // order regardless of status or when each game was added.
+    private var sortedGames: [Game] {
+        appState.games.sorted { a, b in
+            (usDateFormatter.date(from: a.date) ?? .distantPast) < (usDateFormatter.date(from: b.date) ?? .distantPast)
         }
+    }
+
+    // Cumulative W-L-T through each completed game, in schedule (chronological) order.
+    private var runningRecords: [String: (wins: Int, losses: Int, ties: Int)] {
+        seasonRunningRecords(sortedGames)
+    }
+
+    private func cardColor(_ game: Game) -> Color {
+        game.status == "completed" ? Color(white: 0.9) : Color(white: 0.96)
     }
 
     var body: some View {
@@ -41,15 +45,24 @@ struct ScheduleScreen: View {
                 // display — add/upload only, no drilling into a game's stats. The
                 // Home screen's read-only Schedule keeps the existing tap-to-view-stats
                 // behavior.
-                List(appState.games) { game in
-                    if isReadOnly {
-                        NavigationLink(value: GameStatsRoute(gameId: game.id, backLabel: "← Back to Schedule", readOnly: true)) {
-                            scheduleRow(game)
+                List(Array(sortedGames.enumerated()), id: \.element.id) { offset, game in
+                    // A scheduled-but-not-yet-started game has no stats to show —
+                    // tapping in would just land on an all-zero table, so it's not
+                    // tappable here. Start it from Game Hub instead.
+                    Group {
+                        if isReadOnly && game.status != "scheduled" {
+                            NavigationLink(value: GameStatsRoute(gameId: game.id, backLabel: "← Back to Schedule", readOnly: true)) {
+                                GameRowView(game: game, gameNumber: offset + 1, record: runningRecords[game.id], cardColor: cardColor(game))
+                            }
+                        } else {
+                            GameRowView(game: game, gameNumber: offset + 1, record: runningRecords[game.id], cardColor: cardColor(game))
                         }
-                    } else {
-                        scheduleRow(game)
                     }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                 }
+                .listStyle(.plain)
             }
         }
         .safeAreaInset(edge: .bottom) {

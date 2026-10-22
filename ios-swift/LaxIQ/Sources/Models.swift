@@ -128,7 +128,8 @@ func positionAbbreviation(_ position: String?) -> String {
 func positionGroup(_ position: String?) -> String {
     let p = (position ?? "").lowercased()
     if p.contains("goalie") { return "Goalie" }
-    if p.contains("middie") || p.contains("midfield") || p.contains("face off") || p.contains("faceoff") || p.contains("long stick") {
+    if p.contains("long stick") { return "LSM" }
+    if p.contains("middie") || p.contains("midfield") || p.contains("face off") || p.contains("faceoff") {
         return "Middie"
     }
     if p.contains("attack") { return "Attack" }
@@ -136,10 +137,10 @@ func positionGroup(_ position: String?) -> String {
     return "Other"
 }
 
-private let positionGroupOrder = ["Attack": 0, "Middie": 1, "Defense": 2, "Goalie": 3, "Other": 4]
+private let positionGroupOrder = ["Attack": 0, "LSM": 1, "Middie": 2, "Defense": 3, "Goalie": 4, "Other": 5]
 
 func positionGroupRank(_ position: String?) -> Int {
-    positionGroupOrder[positionGroup(position)] ?? 4
+    positionGroupOrder[positionGroup(position)] ?? 5
 }
 
 func calculateTotalStats(_ stats: [[Int]]) -> [Int] {
@@ -238,6 +239,25 @@ struct Game: Identifiable {
         playerIn = row.game_players.map { $0.player_in ?? false }
         playerStintSec = row.game_players.map { $0.current_stint_sec ?? 0 }
     }
+}
+
+// The team's cumulative W-L-T record through each completed game, keyed by
+// game id — `games` must already be in chronological order. Scheduled/in-
+// progress games don't count toward the tally and get no entry.
+func seasonRunningRecords(_ games: [Game]) -> [String: (wins: Int, losses: Int, ties: Int)] {
+    var wins = 0, losses = 0, ties = 0
+    var result: [String: (wins: Int, losses: Int, ties: Int)] = [:]
+    for game in games where game.status == "completed" {
+        if game.ourScore > game.opponentScore { wins += 1 }
+        else if game.ourScore < game.opponentScore { losses += 1 }
+        else { ties += 1 }
+        result[game.id] = (wins, losses, ties)
+    }
+    return result
+}
+
+func seasonRecordLabel(_ record: (wins: Int, losses: Int, ties: Int)) -> String {
+    record.ties > 0 ? "\(record.wins)-\(record.losses)-\(record.ties)" : "\(record.wins)-\(record.losses)"
 }
 
 struct GameInsert: Codable {

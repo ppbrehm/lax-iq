@@ -517,7 +517,7 @@ struct GameHubScreen: View {
     private func playerColumn(title: String, game: Game, playing: Bool, width: CGFloat) -> some View {
         let indices = game.players.indices.filter { game.playerIn[$0] == playing }
         let grouped = Dictionary(grouping: indices) { positionGroup(game.players[$0].position) }
-        let presentGroups = ["Attack", "Middie", "Defense", "Goalie"].filter { !(grouped[$0] ?? []).isEmpty }
+        let presentGroups = ["Attack", "LSM", "Middie", "Defense", "Goalie"].filter { !(grouped[$0] ?? []).isEmpty }
         let sinceLabel = playing ? "Since In" : "Since Out"
 
         return VStack(alignment: .leading, spacing: 6) {

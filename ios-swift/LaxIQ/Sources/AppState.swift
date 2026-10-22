@@ -26,6 +26,10 @@ final class AppState: ObservableObject {
     @Published var allTeams: [Team] = []
     @Published var loading = true
     @Published var errorMessage = ""
+    // Lives here (not as local @State on the table) so it survives switching
+    // between Stats Input and Game Hub, which recreates PlayerStatsTable.
+    @Published var statsSortColumn: PlayerStatsSortColumn?
+    @Published var statsSortAscending = true
 
     private var timer: Timer?
     private var gameChannel: RealtimeChannelV2?
@@ -178,6 +182,21 @@ final class AppState: ObservableObject {
                 .execute()
         } catch {
             setError(error)
+        }
+    }
+
+    // Calls the delete_own_account() Postgres function (see
+    // supabase_delete_account_migration.sql) — it removes this user's team
+    // memberships and auth.users row server-side, since the client only ever
+    // holds the anon key and can't delete an auth user directly. The caller
+    // should only sign the device out if this returns true.
+    func deleteAccount() async -> Bool {
+        do {
+            try await supabase.rpc("delete_own_account").execute()
+            return true
+        } catch {
+            setError(error)
+            return false
         }
     }
 
@@ -622,23 +641,23 @@ final class AppState: ObservableObject {
         var newStats = games[idx].stats[row]
         newStats[col] = max(0, newStats[col] + delta)
 
+        // These always carry the same +1/-1 through to the broader stat they're
+        // a subset of, on top of whatever's already been tapped directly there —
+        // e.g. a faceoff win is still its own separate attempt even if attempts
+        // was already bumped for an earlier loss, so it can't just raise a floor.
         if col == StatIndex.goals {
-            if delta > 0 {
-                if newStats[StatIndex.goals] > newStats[StatIndex.sog] { newStats[StatIndex.sog] = newStats[StatIndex.goals] }
-                if newStats[StatIndex.goals] > newStats[StatIndex.shots] { newStats[StatIndex.shots] = newStats[StatIndex.goals] }
-            }
+            newStats[StatIndex.sog] = max(0, newStats[StatIndex.sog] + delta)
+            newStats[StatIndex.shots] = max(0, newStats[StatIndex.shots] + delta)
         }
-        if col == StatIndex.sog, delta > 0, newStats[StatIndex.sog] > newStats[StatIndex.shots] {
-            newStats[StatIndex.shots] = newStats[StatIndex.sog]
+        if col == StatIndex.sog {
+            newStats[StatIndex.shots] = max(0, newStats[StatIndex.shots] + delta)
+        }
+        if col == StatIndex.foWin {
+            newStats[StatIndex.foAtt] = max(0, newStats[StatIndex.foAtt] + delta)
         }
         if col == StatIndex.ga || col == StatIndex.saves {
-            let saog = newStats[StatIndex.ga] + newStats[StatIndex.saves]
-            newStats[StatIndex.saog] = saog
-            if delta < 0 {
-                if saog < newStats[StatIndex.sa] { newStats[StatIndex.sa] = saog }
-            } else {
-                if saog > newStats[StatIndex.sa] { newStats[StatIndex.sa] = saog }
-            }
+            newStats[StatIndex.sa] = max(0, newStats[StatIndex.sa] + delta)
+            newStats[StatIndex.saog] = newStats[StatIndex.ga] + newStats[StatIndex.saves]
         }
 
         games[idx].stats[row] = newStats
@@ -658,6 +677,9 @@ final class AppState: ObservableObject {
         if col == StatIndex.goals || col == StatIndex.sog {
             updates["shots"] = .double(Double(newStats[StatIndex.shots]))
             updates["shots_on_goal"] = .double(Double(newStats[StatIndex.sog]))
+        }
+        if col == StatIndex.foWin {
+            updates["faceoff_attempts"] = .double(Double(newStats[StatIndex.foAtt]))
         }
         if col == StatIndex.ga || col == StatIndex.saves {
             updates["shots_against_on_goal"] = .double(Double(newStats[StatIndex.saog]))
